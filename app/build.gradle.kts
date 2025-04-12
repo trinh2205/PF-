@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -54,6 +55,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.animation.core.lint)
     implementation(libs.androidx.espresso.core)
+    implementation(libs.androidx.media3.common.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -61,7 +63,25 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0") // Kiểm tra phiên bản mới nhất
+    // Import the Firebase BoM
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+
+
+    // TODO: Add the dependencies for Firebase products you want to use
+    // When using the BoM, don't specify versions in Firebase dependencies
+    implementation("com.google.firebase:firebase-analytics")
+
     implementation("com.google.firebase:firebase-auth-ktx:22.0.0")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
+    // Thêm các SDK Firebase khác bạn muốn sử dụng (ví dụ: Realtime Database, Storage, etc.)
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-messaging")
+
+
     implementation("com.google.android.gms:play-services-auth:20.5.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("androidx.compose.ui:ui:1.6.0")

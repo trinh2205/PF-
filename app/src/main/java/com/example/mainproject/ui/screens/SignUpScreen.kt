@@ -1,5 +1,6 @@
 package com.example.mainproject.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,14 +24,16 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mainproject.R
+import com.example.mainproject.ui.auth.AuthViewModel
 import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun SignUp(navController: NavController) {
+fun SignUp(navController: NavController, viewModel: AuthViewModel = viewModel()) {
     Box(modifier = Modifier.fillMaxSize().background(colorResource( id = R.color.mainColor))) {
         // Layer 1: Background + "Welcome"
         Column(
@@ -62,14 +65,14 @@ fun SignUp(navController: NavController) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Các trường nhập và nút đăng nhập
-                SignUpForm()
+                SignUpForm(viewModel = viewModel)
             }
         }
     }
 }
 
 @Composable
-fun SignUpForm() {
+fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -78,6 +81,9 @@ fun SignUpForm() {
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
+    val tag = "SignUpScreen"
+    val scope = rememberCoroutineScope()
+    val state = viewModel.authState.collectAsState() // Lấy AuthState
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Full Name
@@ -186,7 +192,7 @@ fun SignUpForm() {
                 IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
                     Icon(
                         imageVector = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = "Toggle Password Visibility"
+                        contentDescription = "Toggle Confirm Password Visibility"
                     )
                 }
             }
@@ -204,7 +210,15 @@ fun SignUpForm() {
 
         // Sign Up Button
         Button(
-            onClick = { /* Handle sign-up logic */ },
+            onClick = {
+                Log.d(
+                    tag,
+                    "Đăng ký với: Full Name=$fullName, Email=$email, Phone=$phone, DOB=$dob, Password=$password, Confirm Password=$confirmPassword"
+                )
+                scope.launch {
+                    viewModel.signUp(email, password, fullName)
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
@@ -213,6 +227,19 @@ fun SignUpForm() {
             )
         ) {
             Text(text = "Sign Up")
+        }
+
+        if (state.value.signUpState.isLoading) { // Truy cập signUpState
+            CircularProgressIndicator()
+        }
+
+        state.value.signUpState.errorMessage?.let { error -> // Truy cập signUpState
+            Text(text = error, color = MaterialTheme.colorScheme.error)
+        }
+
+        if (state.value.signUpState.isSuccess) { // Truy cập signUpState
+            Text(text = "Đăng ký thành công!", color = Color.Green)
+            // navController.navigate(Routes.HOME)
         }
     }
 }

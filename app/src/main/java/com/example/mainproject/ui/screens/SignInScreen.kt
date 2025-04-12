@@ -1,5 +1,6 @@
 package com.example.mainproject.ui.screens
 
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -25,9 +26,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.util.Log
+import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import com.example.mainproject.NAVIGATION.Routes
 //import com.example.mainproject.Navigation.Routes
 import com.example.mainproject.R
+import com.example.mainproject.ui.auth.AuthViewModel
 import com.google.accompanist.pager.*
 import kotlinx.coroutines.launch
 
@@ -72,11 +78,15 @@ fun SignIn(navController: NavController) {
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
-fun LoginForm(navController: NavController) {
+fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel()) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val tag = "SignInScreen"
+    val scope = rememberCoroutineScope()
+    val state = viewModel.authState.collectAsState() // Lấy AuthState
 
     OutlinedTextField(
         value = username,
@@ -104,7 +114,7 @@ fun LoginForm(navController: NavController) {
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = KeyboardType.Password,
-            imeAction = ImeAction.Next
+            imeAction = ImeAction.Done
         ),
         trailingIcon = {
             IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -119,7 +129,12 @@ fun LoginForm(navController: NavController) {
     Spacer(modifier = Modifier.height(16.dp))
 
     Button(
-        onClick = { /* Handle login */ },
+        onClick = {
+            Log.d(tag, "Đăng nhập với Email: $username, Mật khẩu: $password")
+            scope.launch {
+                viewModel.signIn(username, password)
+            }
+        },
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
@@ -128,6 +143,21 @@ fun LoginForm(navController: NavController) {
         )
     ) {
         Text(text = "Sign in")
+    }
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    if (state.value.signInState.isLoading) { // Truy cập signUpState
+        CircularProgressIndicator()
+    }
+
+    state.value.signInState.errorMessage?.let { error -> // Truy cập signUpState
+        Text(text = error, color = MaterialTheme.colorScheme.error)
+    }
+
+    if (state.value.signInState.isSuccess) { // Truy cập signUpState
+        Text(text = "Đăng ký thành công!", color = Color.Green)
+         navController.navigate(route = Routes.HOME)
     }
 
     Spacer(modifier = Modifier.height(16.dp))
@@ -142,7 +172,7 @@ fun LoginForm(navController: NavController) {
 
     Button(
         onClick = {
-//            navController.navigate(Routes.SIGN_UP)
+            // navController.navigate(Routes.SIGN_UP)
         },
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),

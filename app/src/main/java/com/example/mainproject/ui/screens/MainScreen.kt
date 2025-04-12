@@ -8,13 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.mainproject.NAVIGATION.Routes
 //import com.example.mainproject.Navigation.Routes
 import com.example.mainproject.R
 
@@ -45,7 +44,7 @@ fun MainScreen(navController: NavController) {
             Button(
                 onClick = {
                     // Điều hướng đến màn hình Sign In
-//                    navController.navigate(route = Routes.SIGN_IN)
+                    navController.navigate(route = Routes.SIGN_IN)
                 },
                 modifier = Modifier
                     .width(200.dp) // Đặt chiều rộng cụ thể là 200dp
@@ -63,7 +62,7 @@ fun MainScreen(navController: NavController) {
             Button(
                 onClick = {
                     // Điều hướng đến màn hình Sign Up
-//                    navController.navigate(Routes.SIGN_UP)
+                    navController.navigate(route = Routes.SIGN_UP)
                 },
                 modifier = Modifier
                     .width(200.dp) // Đặt chiều rộng cụ thể là 200dp
