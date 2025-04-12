@@ -62,6 +62,7 @@ import com.skydoves.landscapist.coil.CoilImage
 @Preview(showBackground = true)
 @Composable
 fun Home() {
+
     val textField1 = remember { mutableStateOf("") }
     Column(
         modifier = Modifier
@@ -249,6 +250,7 @@ fun BottomBackgroundBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState()) // Kích hoạt cuộn
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             // 1. Thẻ tổng quan tài chính
@@ -264,8 +266,10 @@ fun BottomBackgroundBar(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. Danh sách giao dịch
+            // 3. Danh sách giao dịch (số lượng nhiều vẫn hiển thị hết nhờ cuộn)
             TransactionList(filter = selectedTimeFilter)
+
+            Spacer(modifier = Modifier.height(100.dp)) // Đệm tránh che bởi thanh điều hướng
         }
     }
 }
@@ -323,7 +327,7 @@ fun TimeFilterToggle(selected: String, onSelected: (String) -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp) // 👈 giống với FinancialCard
+            .padding(horizontal = 16.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xFFDFF7E2))
             .padding(vertical = 8.dp)
@@ -365,7 +369,6 @@ fun FinancialCard() {
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Cột trái: Icon và mô tả
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
@@ -539,6 +542,9 @@ fun TransactionList(filter: String) {
     val allTransactions = listOf(
         Transaction("Salary", "18:27 - April 30", "Monthly", "$4.000,00", true, Icons.Default.AttachMoney),
         Transaction("Groceries", "17:00 - April 24", "Daily", "-$100,00", false, Icons.Default.LocalGroceryStore),
+        Transaction("Groceries", "17:00 - April 24", "Weekly", "-$100,00", false, Icons.Default.LocalGroceryStore),
+        Transaction("Groceries", "17:00 - April 24", "Weekly", "-$100,00", false, Icons.Default.LocalGroceryStore),
+        Transaction("Groceries", "17:00 - April 24", "Weekly", "-$100,00", false, Icons.Default.LocalGroceryStore),
         Transaction("Groceries", "17:00 - April 24", "Weekly", "-$100,00", false, Icons.Default.LocalGroceryStore),
         Transaction("Rent", "8:30 - April 15", "Weekly", "-$674,40", false, Icons.Default.Home)
     )
