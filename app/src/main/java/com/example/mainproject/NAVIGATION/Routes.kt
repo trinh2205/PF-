@@ -5,5 +5,6 @@ object Routes {
     const val SIGN_IN = "signInScreen"
     const val SIGN_UP = "signUpScreen"
     const val HOME = "homeScreen"
+    const val TRANSACTION = "transactionScreen"
     // ... các route khác ...
 }

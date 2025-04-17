@@ -1,4 +1,9 @@
 package com.example.mainproject.ui.screens
 
-class Notification {
+import androidx.compose.runtime.Composable
+import androidx.navigation.NavController
+
+@Composable
+fun Notification (navController: NavController) {
+
 }

@@ -2,7 +2,6 @@ package com.example.mainproject.ui.screens
 
 import androidx.annotation.OptIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,23 +22,23 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
+import com.example.mainproject.NAVIGATION.AuthViewModelFactory
 import com.example.mainproject.NAVIGATION.Routes
 //import com.example.mainproject.Navigation.Routes
 import com.example.mainproject.R
 import com.example.mainproject.ui.auth.AuthViewModel
-import com.google.accompanist.pager.*
+import com.example.mainproject.viewModel.AppViewModel
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun SignIn(navController: NavController) {
+fun SignIn(navController: NavController,authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(viewModel<AppViewModel>()))) {
     Box(modifier = Modifier.fillMaxSize().background(colorResource( id = R.color.mainColor))) {
         // Layer 1: Background + "Welcome"
         Column(
@@ -157,7 +156,7 @@ fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel
 
     if (state.value.signInState.isSuccess) { // Truy cập signUpState
         Text(text = "Đăng ký thành công!", color = Color.Green)
-         navController.navigate(route = Routes.HOME)
+         navController.navigate(route = com.example.mainproject.NAVIGATION.Routes.HOME)
     }
 
     Spacer(modifier = Modifier.height(16.dp))

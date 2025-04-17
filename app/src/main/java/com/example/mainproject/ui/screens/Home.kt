@@ -1,8 +1,7 @@
 package com.example.mainproject.ui.screens
-import androidx.activity.compose.R
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -25,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Checkbox
 import androidx.compose.material.Divider
 import androidx.compose.material.Icon
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachMoney
@@ -38,6 +37,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -45,285 +45,208 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PaintingStyle.Companion.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.skydoves.landscapist.ImageOptions
-import com.skydoves.landscapist.coil.CoilImage
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import com.example.mainproject.ui.components.BottomNavigationBar
+import com.example.mainproject.ui.components.NavigationItem
 
-@Preview(showBackground = true)
 @Composable
-fun Home() {
+fun Home(navController: NavHostController) {
     val textField1 = remember { mutableStateOf("") }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .fillMaxHeight()
-            .background(
-                color = Color(0xFFFFFFFF),
-            )
-    ) {
+    var selectedBottomNav by remember { mutableStateOf("home") }
+
+    Scaffold(bottomBar = {
+        BottomNavigationBar(
+            selectedItem = selectedBottomNav,
+            onItemClick = { newItem -> selectedBottomNav = newItem.route }
+        )
+    }) { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
+                .fillMaxSize()
+                .padding(paddingValues)
                 .background(
-                    color = Color(0xFF3498DB),
+                    Color(0xFF3498DB),
                 )
-                .verticalScroll(rememberScrollState())
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Column( // Nội dung chính (cuộn được)
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(30.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 16.dp)
             ) {
-            }
-            Row (
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 25.dp,start = 38.dp,end = 38.dp,)
-            ) {
-                Column(
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(end = 12.dp,)
-                        .weight(1f)
-                ){
-                    Text("Hi, Welcome Back",
-                        color = Color(0xFF052224),
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text("Good Morning",
-                        color = Color(0xFF052224),
-                        fontSize = 14.sp,
-                    )
-
-                }
-                Image(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notification",
+                        .fillMaxWidth()
+                        .height(100.dp),
+                ) {}
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .clip(shape = RoundedCornerShape(40.dp))
-                        .width(30.dp)
-                        .height(30.dp)
-                        .background(Color(0xFFDFF7E2))
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 50.dp), // Thêm padding để dễ canh chỉnh
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(horizontalAlignment = Alignment.Start) {
-                    Text("Total Balance", color = Color.Black.copy(alpha = 0.7f), fontSize = 14.sp)
-                    Text(
-                        text = "$7,783.00",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        color = Color.White
+                        .fillMaxWidth()
+                        .padding(bottom = 25.dp, start = 38.dp, end = 38.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .weight(1f)
+                    ) {
+                        Text(
+                            "Hi, Welcome Back",
+                            color = Color(0xFF052224),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            "Good Morning",
+                            color = Color(0xFF052224),
+                            fontSize = 14.sp,
+                        )
+                    }
+                    Image(
+                        imageVector = Icons.Default.Notifications,
+                        contentDescription = "Notification",
+                        modifier = Modifier
+                            .clip(shape = RoundedCornerShape(40.dp))
+                            .width(30.dp)
+                            .height(30.dp)
+                            .background(Color(0xFFDFF7E2))
                     )
                 }
-
-                // Separator - thanh trắng ở giữa
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 50.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text(
+                            "Total Balance",
+                            color = Color.Black.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = "$7,783.00",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            color = Color.White
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(Color.White)
+                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            "Total Expense",
+                            color = Color.Black.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+                        Text(
+                            text = "-$1,187.40",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            color = Color(0xFFFF3B30)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(24.dp))
                 Box(
                     modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(Color.White)
-                )
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Total Expense", color = Color.Black.copy(alpha = 0.7f), fontSize = 14.sp)
-                    Text(
-                        text = "-$1,187.40",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        color = Color(0xFFFF3B30)
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Thanh phần trăm (Progress bar tùy chỉnh)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(20.dp)
-                    .padding(horizontal = 40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFE6FFF9))
-
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.3f) // 30%
+                        .fillMaxWidth()
+                        .height(20.dp)
+                        .padding(horizontal = 40.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color.Black)
+                        .background(Color(0xFFE6FFF9))
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(0.3f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.Black)
+                    ) {
+                        Text(
+                            "30%",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
                     Text(
-                        "30%",
-                        color = Color.White,
+                        "$20,000.00",
+                        color = Color.Black,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 16.dp)
                     )
                 }
-
-                Text(
-                    "$20,000.00",
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
+                Spacer(modifier = Modifier.height(5.dp))
+                Row(
                     modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 16.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            // Checkbox và dòng thông báo
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp),
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = true,
-                    onCheckedChange = {}
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "30% Of Your Expenses, Looks Good.",
-                    color = Color.Black,
-                    fontSize = 14.sp
-                )
-
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
-// Nền trắng phía dưới cùng và thanh công cụ bo góc trên
-            Box(modifier = Modifier
-                .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 40.dp),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                BottomBackgroundBar()
+                    Checkbox(
+                        checked = true,
+                        onCheckedChange = {}
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "30% Of Your Expenses, Looks Good.",
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-
-            }
-            Box(modifier = Modifier
-
-                .background(Color(0xFFFFFFFF))) {
-                BottomNavigationBar()
-
-            }
-        }
-    }
-}
-
-@Composable
-fun BottomBackgroundBar(
-    selectedTimeFilter: String = "Weekly",
-    onTimeFilterChange: (String) -> Unit = {}
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
-            .background(Color(0xFFF4FFF9)) // màu nền trắng ngà
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
-        ) {
-            // 1. Thẻ tổng quan tài chính
-            FinancialCard()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 2. Bộ lọc thời gian
-            TimeFilterToggle(
-                selected = selectedTimeFilter,
-                onSelected = onTimeFilterChange
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 3. Danh sách giao dịch
-            TransactionList(filter = selectedTimeFilter)
-        }
-    }
-}
-
-
-@Composable
-fun BottomNavigationBar() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-            .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
-            .background(Color(0xFFDFF7E2)) // Màu nền xanh nhạt
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 30.dp, vertical = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            val icons = listOf(
-                Icons.Default.Home,
-                Icons.Default.BarChart,
-                Icons.Default.SwapHoriz,
-                Icons.Default.Layers,
-                Icons.Default.Person
-            )
-
-            icons.forEachIndexed { index, icon ->
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (index == 0) Color(0xFF3498DB) else Color.Transparent
-                        ),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                        .background(Color(0xFFF4FFF9))
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = if (index == 0) Color.White else Color(0xFF052224),
-                        modifier = Modifier.size(26.dp)
-                    )
+                    Column {
+                        FinancialCard()
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TimeFilterToggle(
+                            selected = "Weekly",
+                            onSelected = {}
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        TransactionList(filter = "Weekly") // Filter awal
+                    }
                 }
             }
         }
     }
 }
+
 @Composable
 fun TimeFilterToggle(selected: String, onSelected: (String) -> Unit) {
     val options = listOf("Daily", "Weekly", "Montly")
-
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp) // 👈 giống với FinancialCard
             .clip(RoundedCornerShape(16.dp))
             .background(Color(0xFFDFF7E2))
             .padding(vertical = 8.dp)
@@ -357,7 +280,7 @@ fun FinancialCard() {
             .fillMaxWidth()
             .padding(16.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color(0xFF3498DB)) // Màu xanh dương
+            .background(Color(0xFF3498DB))
             .padding(16.dp)
     ) {
         Row(
@@ -365,7 +288,6 @@ fun FinancialCard() {
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Cột trái: Icon và mô tả
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.weight(1f)
@@ -377,7 +299,6 @@ fun FinancialCard() {
                     contentAlignment = Alignment.Center
                 ) {
                     Canvas(modifier = Modifier.fillMaxSize()) {
-                        // Vòng tròn nền (progress track) màu trắng
                         drawArc(
                             color = Color.White,
                             startAngle = 0f,
@@ -385,18 +306,14 @@ fun FinancialCard() {
                             useCenter = false,
                             style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
                         )
-
-                        // Vòng màu xanh dương đậm - phần progress
                         drawArc(
-                            color = Color(0xFF007BFF), // Xanh dương đậm giống ảnh
+                            color = Color(0xFF007BFF),
                             startAngle = -90f,
-                            sweepAngle = 180f, // Tùy chỉnh % progress (270 = 75%)
+                            sweepAngle = 180f,
                             useCenter = false,
                             style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
                         )
                     }
-
-                    // Icon ở giữa vòng tròn
                     Icon(
                         imageVector = Icons.Default.DirectionsCar,
                         contentDescription = null,
@@ -404,9 +321,7 @@ fun FinancialCard() {
                         modifier = Modifier.size(28.dp)
                     )
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
                     text = "Savings\nOn Goals",
                     color = Color.Black,
@@ -414,16 +329,12 @@ fun FinancialCard() {
                     textAlign = TextAlign.Center
                 )
             }
-
-            // Thanh chia trắng
             Divider(
                 color = Color.White,
                 modifier = Modifier
                     .width(1.dp)
                     .height(60.dp)
             )
-
-            // Cột phải: Thông tin thu chi
             Column(
                 modifier = Modifier
                     .weight(2f)
@@ -447,17 +358,13 @@ fun FinancialCard() {
                         )
                     }
                 }
-
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Divider(
                     color = Color.White,
                     thickness = 1.dp,
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
-
                 Spacer(modifier = Modifier.height(12.dp))
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -515,15 +422,12 @@ fun TransactionItem(transaction: Transaction) {
                     tint = Color.White
                 )
             }
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column {
                 Text(transaction.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Text(transaction.time, fontSize = 12.sp, color = Color(0xFF1D71B8))
             }
         }
-
         Column(horizontalAlignment = Alignment.End) {
             Text(transaction.period, fontSize = 12.sp, color = Color.Gray)
             Text(
@@ -534,6 +438,7 @@ fun TransactionItem(transaction: Transaction) {
         }
     }
 }
+
 @Composable
 fun TransactionList(filter: String) {
     val allTransactions = listOf(
@@ -552,4 +457,9 @@ fun TransactionList(filter: String) {
     }
 }
 
-
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun HomePreview() {
+    val navController = rememberNavController() // Tạo một NavController đơn giản cho preview
+    Home(navController = navController)
+}

@@ -10,14 +10,24 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-data class UserInfo(val uid: String, val email: String?, val displayName: String?) {
+data class UserInfo(
+    val uid: String,
+    val email: String?,
+    val displayName: String?,
+    val userId: String,
+    val passwordHash: String,
+    val isVerified: Boolean
+) {
     companion object {
         fun fromDocument(document: DocumentSnapshot): UserInfo? {
             return if (document.exists()) {
                 UserInfo(
                     uid = document.id,
                     email = document.getString("email"),
-                    displayName = document.getString("displayName")
+                    displayName = document.getString("displayName"),
+                    userId = userId,
+                    passwordHash = hashedPasswordFromDb,
+                    isVerified = true
                 )
             } else {
                 null
@@ -52,7 +62,14 @@ class AppViewModel : ViewModel() {
                     }
                     .addOnFailureListener { e ->
                         // Xử lý lỗi khi lấy thông tin người dùng
-                        setCurrentUser(UserInfo(user.uid, user.email, user.displayName)) // Fallback to FirebaseUser info
+                        setCurrentUser(UserInfo(
+                            user.uid,
+                            user.email,
+                            user.displayName,
+                            userId,
+                            hashedPasswordFromDb,
+                            true
+                        )) // Fallback to FirebaseUser info
                         println("Error fetching user info from Firestore: $e")
                     }
             }

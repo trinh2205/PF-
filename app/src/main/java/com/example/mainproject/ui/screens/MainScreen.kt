@@ -44,7 +44,7 @@ fun MainScreen(navController: NavController) {
             Button(
                 onClick = {
                     // Điều hướng đến màn hình Sign In
-                    navController.navigate(route = Routes.SIGN_IN)
+                    navController.navigate(route = com.example.mainproject.NAVIGATION.Routes.SIGN_IN)
                 },
                 modifier = Modifier
                     .width(200.dp) // Đặt chiều rộng cụ thể là 200dp
@@ -62,7 +62,7 @@ fun MainScreen(navController: NavController) {
             Button(
                 onClick = {
                     // Điều hướng đến màn hình Sign Up
-                    navController.navigate(route = Routes.SIGN_UP)
+                    navController.navigate(route = com.example.mainproject.NAVIGATION.Routes.SIGN_UP)
                 },
                 modifier = Modifier
                     .width(200.dp) // Đặt chiều rộng cụ thể là 200dp
