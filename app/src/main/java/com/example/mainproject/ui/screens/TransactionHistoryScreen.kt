@@ -31,9 +31,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.CustomHeader
+import com.example.mainproject.ui.components.NavigationItem
 import com.example.mainproject.ui.components.miniBox
 import org.xmlpull.v1.sax2.Driver
 
@@ -108,11 +110,21 @@ fun TransactionScreen(navController: NavController) {
         }
     }
 
-    Scaffold(bottomBar = {
-        BottomNavigationBar(
-            selectedItem = selectedTab,
-            onItemClick = { newItem -> selectedTab = newItem.route }
-        )
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(
+                selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
+                onItemClick = { item ->
+                    navController.navigate(item.route) {
+                        // ... cấu hình điều hướng (tùy chọn) ...
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
     }) { paddingValues ->
         Column(
             modifier = Modifier
@@ -296,9 +308,9 @@ fun TransactionScreen(navController: NavController) {
     }
 }
 
-    @Preview(showBackground = true, showSystemUi = true)
-    @Composable
-    fun TransactionScreenPreview() {
-        val navController = rememberNavController()
-        TransactionScreen(navController = navController)
-    }
+//    @Preview(showBackground = true, showSystemUi = true)
+//    @Composable
+//    fun TransactionScreenPreview() {
+//        val navController = rememberNavController()
+//        TransactionScreen(navController = navController)
+//    }

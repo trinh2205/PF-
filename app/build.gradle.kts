@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
+    kotlin("kapt")
+    id("com.google.devtools.ksp") version "1.9.22-1.0.17" // Ví dụ version mới hơn
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -29,8 +32,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
         jvmTarget = "11"
@@ -64,7 +67,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0") // Kiểm tra phiên bản mới nhất
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7") // Kiểm tra phiên bản mới nhất
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
 
@@ -81,6 +84,12 @@ dependencies {
     implementation("com.google.firebase:firebase-storage")
     implementation("com.google.firebase:firebase-messaging")
 
+    implementation("com.google.firebase:firebase-database-ktx") // Sử dụng phiên bản mới nhất
+
+    implementation("com.google.dagger:hilt-android:2.56.1")
+    ksp("com.google.dagger:hilt-android-compiler:2.56.1")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0") // Nếu dùng Compose Navigation + Hilt
+//    kapt("androidx.hilt:hilt-compiler:1.1.0")
 
     implementation("com.google.android.gms:play-services-auth:20.5.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
@@ -116,5 +125,8 @@ dependencies {
     implementation("androidx.core:core-splashscreen:1.2.0-beta01")
     implementation("androidx.core.uwb:uwb:1.0.0-alpha10")
     implementation("androidx.credentials:credentials:1.5.0")
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.20") // Thay thế bằng phiên bản mong muốn
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20") // Nếu bạn sử dụng reflection
 
 }

@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Spa
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -66,9 +67,13 @@ import com.example.mainproject.Data.model.ListCategories
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.CustomHeader
 import com.example.mainproject.ui.components.GridItem
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.mainproject.ui.components.NavigationItem
+import com.example.mainproject.viewModel.TransactionViewModel
 
 @Composable
-fun CategoriesScreen(navController: NavController) {
+fun CategoriesScreen(navController: NavController, viewModel: TransactionViewModel = viewModel()) {
     val textField1 = remember { mutableStateOf("") }
     var selectedBottomNav by remember { mutableStateOf("home") }
     val addNewCategory = Category(
@@ -80,21 +85,26 @@ fun CategoriesScreen(navController: NavController) {
         date = ""
     )
 
-    val categories = remember {
-        listOf(
-            Category(id = 1, title = "Đồ ăn", type = listOf(ListCategories(id = 1, name = "Ăn uống", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 2, title = "Điện tử", type = listOf(ListCategories(id = 2, name = "Công nghệ", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 3, title = "Sách", type = listOf(ListCategories(id = 3, name = "Văn học", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 4, title = "Quần áo", type = listOf(ListCategories(id = 4, name = "Thời trang", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 5, title = "Gia dụng", type = listOf(ListCategories(id = 5, name = "Đời sống", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 6, title = "Thể thao", type = listOf(ListCategories(id = 6, name = "Giải trí", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 7, title = "Du lịch", type = listOf(ListCategories(id = 7, name = "Khám phá", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 8, title = "Giáo dục", type = listOf(ListCategories(id = 8, name = "Học tập", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            Category(id = 9, title = "Sức khỏe", type = listOf(ListCategories(id = 9, name = "Chăm sóc bản thân", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
-            addNewCategory
-            // Thêm các category khác của bạn vào đây
-        )
-    }
+    val categoriesMap by viewModel.categories.collectAsState()
+    val categoriesList = categoriesMap.values.toList() // Chuyển Map thành List để dùng với items
+
+//    val categories = remember {
+//        mutableStateOf(
+//            listOf(
+//                Category(id = 1, title = "Food", type = listOf(ListCategories(id = 1, name = "Ăn uống", icon = Icons.Filled.Fastfood)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 2, title = "Electronics", type = listOf(ListCategories(id = 2, name = "Công nghệ", icon = Icons.Filled.Android)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 3, title = "Book", type = listOf(ListCategories(id = 3, name = "Văn học", icon = Icons.Filled.Book)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 4, title = "Clothes", type = listOf(ListCategories(id = 4, name = "Thời trang", icon = Icons.Filled.Checkroom)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 5, title = "House Hold", type = listOf(ListCategories(id = 5, name = "Đời sống", icon = Icons.Filled.Home)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 6, title = "Sports", type = listOf(ListCategories(id = 6, name = "Giải trí", icon = Icons.Filled.PlayArrow)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 7, title = "Travel", type = listOf(ListCategories(id = 7, name = "Khám phá", icon = Icons.Filled.Explore)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 8, title = "Education", type = listOf(ListCategories(id = 8, name = "Học tập", icon = Icons.Filled.School)), detail = "", amount = 0.0, date = ""),
+//                Category(id = 9, title = "Health", type = listOf(ListCategories(id = 9, name = "Chăm sóc bản thân", icon = Icons.Filled.Spa)), detail = "", amount = 0.0, date = ""),
+//                addNewCategory
+//                // Thêm các category khác của bạn vào đây
+//            )
+//        )
+//    }
 
     val categoryIcons = remember {
         mapOf(
@@ -111,11 +121,20 @@ fun CategoriesScreen(navController: NavController) {
         )
     }
 
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
-                selectedItem = selectedBottomNav,
-                onItemClick = { newItem -> selectedBottomNav = newItem.route }
+                selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
+                onItemClick = { item ->
+                    navController.navigate(item.route) {
+                        // ... cấu hình điều hướng (tùy chọn) ...
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
             )
         },
         topBar = {
@@ -237,7 +256,7 @@ fun CategoriesScreen(navController: NavController) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight()
+                    .weight(1f)
                     .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
                     .background(Color(0xFFF4FFF9))
                     .padding(horizontal = 16.dp, vertical = 24.dp)
@@ -248,24 +267,29 @@ fun CategoriesScreen(navController: NavController) {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(categories) { category ->
-                        Column{
+                    items(categoriesList) { listCategory -> // Sử dụng categoriesList
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             GridItem(
-                                id = category.id ?: -1, // Sử dụng ID của Category
-                                text = category.title ?: "No Title",
-                                sizeItem = 100.dp, // Điều chỉnh kích thước item theo ý muốn
-                                colorText = Color.Black, // Vẫn đang dùng Color.Black (Compose)
-                                colorBackground = Color.White, // Vẫn đang dùng Color.White (Compose)
-                                activeTextColor = Color.White, // Vẫn đang dùng Color.White (Compose)
-                                activeBackgroundColor = colorResource(id = R.color.mainColor), // Sử dụng colorResource (Compose)
+                                id = listCategory.id, // Sử dụng ID từ ListCategories
+                                text = listCategory.name,
+                                sizeItem = 100.dp,
+                                colorText = Color.Black,
+                                colorBackground = Color.White,
+                                activeTextColor = Color.White,
+                                activeBackgroundColor = colorResource(id = R.color.mainColor),
                                 roundedCorner = 16,
-                                iconType = category.type?.firstOrNull()?.name ?: "", // Lấy tên của loại đầu tiên
-                                categoryIcons = categoryIcons, // Truyền map ánh xạ icon
+                                iconType = listCategory.name, // Sử dụng tên để ánh xạ icon
+                                categoryIcons = categoryIcons,
                                 onClick = { categoryId ->
-                                    ItemScreen()
+                                    navController.navigate("itemScreen/${listCategory.id}/${listCategory.name}")
                                 }
                             )
-                            Text(text = "${category.title}")
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = listCategory.name,
+                                textAlign = TextAlign.Center,
+                                fontSize = 12.sp
+                            )
                         }
                     }
                 }
@@ -273,9 +297,10 @@ fun CategoriesScreen(navController: NavController) {
         }
     }
 }
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CategoryPreview() {
-    val navController = rememberNavController() // Tạo một NavController đơn giản cho preview
-    CategoriesScreen(navController = navController)
-}
+
+//@Preview(showBackground = true, showSystemUi = true)
+//@Composable
+//fun CategoryPreview() {
+//    val navController = rememberNavController() // Tạo một NavController đơn giản cho preview
+//    CategoriesScreen(navController = navController)
+//}

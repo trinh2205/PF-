@@ -7,6 +7,7 @@ data class UserInfo(
     val userId: String,
     val email: String,
     // Lưu ý: Trong thực tế, bạn sẽ lưu trữ phiên bản đã băm của mật khẩu
+    val name:String ,
     val passwordHash: String,
     val isVerified: Boolean,
     val verificationCode: String, // Có thể null sau khi xác minh

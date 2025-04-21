@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.mainproject.NAVIGATION.Routes
 
 data class NavigationItem(
     val icon: ImageVector,
@@ -43,11 +44,11 @@ data class NavigationItem(
 ) {
     companion object {
         val DefaultItems = listOf(
-            NavigationItem(icon = Icons.Default.Home, route = "home"),
-            NavigationItem(icon = Icons.Default.BarChart, route = "stats"),
-            NavigationItem(icon = Icons.Default.SwapHoriz, route = "transfer"),
-            NavigationItem(icon = Icons.Default.Layers, route = "portfolio"),
-            NavigationItem(icon = Icons.Default.Person, route = "profile")
+            NavigationItem(icon = Icons.Default.Home, route = Routes.HOME),
+            NavigationItem(icon = Icons.Default.BarChart, route = Routes.ANALYTICS),
+            NavigationItem(icon = Icons.Default.SwapHoriz, route = Routes.TRANSACTION),
+            NavigationItem(icon = Icons.Default.Layers, route = Routes.CATEGORIES),
+            NavigationItem(icon = Icons.Default.Person, route = Routes.PROFILE)
         )
     }
 }

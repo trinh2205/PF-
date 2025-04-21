@@ -1,8 +1,12 @@
 package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import com.example.mainproject.Data.model.UserInfo
+import java.time.LocalDateTime
 
 class UserViewModel : ViewModel() {
     private val _currentUser = MutableStateFlow<UserInfo?>(null)
@@ -14,66 +18,59 @@ class UserViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
-    fun login(userId: String, email: String, passwordPlain: String) {
-        // Trong thực tế, bạn sẽ lấy mật khẩu đã băm từ cơ sở dữ liệu
-        // và so sánh với phiên bản băm của 'passwordPlain'
-        val hashedPasswordFromDb = "dummyHashedPassword" // Thay thế bằng mật khẩu thực tế từ DB
-
-        // Giả sử có một hàm băm mật khẩu
-        fun hashPassword(password: String): String {
-            // Triển khai logic băm mật khẩu an toàn ở đây
-            return password // **KHÔNG LÀM VẬY TRONG ỨNG DỤNG THỰC TẾ**
-        }
-
-        if (hashPassword(passwordPlain) == hashedPasswordFromDb) {
-            _currentUser.value = UserInfo(
-                userId = userId,
-                email = email,
-                passwordHash = hashedPasswordFromDb, // Lưu trữ hash
-                isVerified = true, // Giả định đã xác minh
-                verificationCode = null,
-                budget = 0.0 // Giá trị mặc định, có thể lấy từ DB hoặc cho người dùng nhập sau
-            )
-            _isLoggedIn.value = true
-            _errorMessage.value = null
-        } else {
-            _errorMessage.value = "Đăng nhập thất bại. Sai email hoặc mật khẩu."
-            _isLoggedIn.value = false
-        }
-    }
-
-    fun register(userId: String, email: String, passwordPlain: String) {
-        // Triển khai logic đăng ký: băm mật khẩu, lưu vào DB, gửi mã xác minh...
-        val hashedPassword = "hashed_" + passwordPlain // **CHỈ LÀ VÍ DỤ**
+    // Hàm này sẽ được gọi khi người dùng đăng nhập thành công
+    fun login(
+        userId: String,
+        userName:String,
+        email: String,
+        passwordHash: String, // Nhận mật khẩu đã băm
+        isVerified: Boolean,
+        verificationCode: String,
+        budget: Double,
+        createdAt: LocalDateTime
+    ) {
         _currentUser.value = UserInfo(
+            name = userName,
             userId = userId,
             email = email,
-            passwordHash = hashedPassword,
-            isVerified = false,
-            verificationCode = "someVerificationCode",
-            budget = 0.0
+            passwordHash = passwordHash,
+            isVerified = isVerified,
+            verificationCode = verificationCode,
+            budget = budget,
+            createdAt = createdAt
         )
-        _isLoggedIn.value = false // Chưa đăng nhập sau đăng ký, thường chuyển sang màn hình xác minh
+        _isLoggedIn.value = true
         _errorMessage.value = null
-        // Gửi mã xác minh (ví dụ)
     }
 
-    fun verifyEmail(verificationCode: String) {
-        if (_currentUser.value?.verificationCode == verificationCode) {
-            _currentUser.value = _currentUser.value?.copy(isVerified = true, verificationCode = null)
-            _errorMessage.value = null
-            _isLoggedIn.value = true // Có thể đăng nhập sau khi xác minh
-        } else {
-            _errorMessage.value = "Mã xác minh không đúng."
-        }
+    // Hàm này có thể được gọi khi cần cập nhật thông tin người dùng (ví dụ: cập nhật budget)
+    fun updateUserInfo(updatedUserInfo: UserInfo) {
+        _currentUser.value = updatedUserInfo
     }
 
+    // Hàm này có thể được gọi khi cần cập nhật trạng thái đã xác minh
+    fun updateUserVerificationStatus(isVerified: Boolean) {
+        _currentUser.value = _currentUser.value?.copy(isVerified = isVerified)
+    }
+
+    // Hàm này có thể được gọi khi cần cập nhật ngân sách
+    fun updateUserBudget(newBudget: Double) {
+        _currentUser.value = _currentUser.value?.copy(budget = newBudget)
+    }
+
+    // Hàm này sẽ được gọi khi người dùng đăng xuất
     fun logout() {
         _currentUser.value = null
         _isLoggedIn.value = false
     }
 
+    // Hàm để đặt thông báo lỗi (ví dụ: lỗi đăng nhập)
     fun setErrorMessage(message: String?) {
         _errorMessage.value = message
+    }
+
+    // Hàm để xóa thông báo lỗi
+    fun clearErrorMessage() {
+        _errorMessage.value = null
     }
 }
