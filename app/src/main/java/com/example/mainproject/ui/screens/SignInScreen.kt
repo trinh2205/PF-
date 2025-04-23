@@ -25,8 +25,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.common.util.Log
-import androidx.media3.common.util.UnstableApi
+//import androidx.media3.common.util.Log
+//import androidx.media3.common.util.UnstableApi
 import androidx.navigation.NavController
 import com.example.mainproject.NAVIGATION.AuthViewModelFactory
 import com.example.mainproject.NAVIGATION.Routes
@@ -34,6 +34,7 @@ import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.ui.auth.AuthViewModel
 import com.example.mainproject.viewModel.AppViewModel
+import dagger.hilt.android.UnstableApi
 import kotlinx.coroutines.launch
 
 
@@ -129,7 +130,7 @@ fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel
 
     Button(
         onClick = {
-            Log.d(tag, "Đăng nhập với Email: $username, Mật khẩu: $password")
+//            Log.d(tag, "Đăng nhập với Email: $username, Mật khẩu: $password")
             scope.launch {
                 viewModel.signIn(username, password)
             }
@@ -155,7 +156,7 @@ fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel
     }
 
     if (state.value.signInState.isSuccess) { // Truy cập signUpState
-        Text(text = "Đăng ký thành công!", color = Color.Green)
+        Text(text = "Đăng nhập thành công!", color = Color.Green)
          navController.navigate(route = com.example.mainproject.NAVIGATION.Routes.HOME)
     }
 
@@ -171,7 +172,7 @@ fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel
 
     Button(
         onClick = {
-            // navController.navigate(Routes.SIGN_UP)
+             navController.navigate(Routes.SIGN_UP)
         },
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),

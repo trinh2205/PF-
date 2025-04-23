@@ -2,23 +2,23 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.gms.google-services")
-    kotlin("kapt")
-    id("com.google.devtools.ksp") version "1.9.22-1.0.17" // Ví dụ version mới hơn
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.ksp)
+//    alias(libs.plugins.hilt)
 }
 
 android {
     namespace = "com.example.mainproject"
     compileSdk = 35
+    ndkVersion = "26.1.10909125"
 
     defaultConfig {
         applicationId = "com.example.mainproject"
+//        applicationId = "com.example.mainproject.test"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
         versionName = "1.0"
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -32,101 +32,97 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
     }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.17"
+    }
 }
 
 dependencies {
+    // JavaPoet
+//    implementation("com.squareup:javapoet:1.13.0")
 
+    // Material
+    implementation(libs.material)
+
+    // AndroidX Core
     implementation(libs.androidx.core.ktx)
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Jetpack Compose
+    implementation(platform("androidx.compose:compose-bom:2024.10.00"))
+    implementation("androidx.compose.ui:ui")
+    implementation("androidx.compose.ui:ui-graphics")
+    implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("androidx.compose.material3:material3")
+    implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.animation:animation")
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.runtime:runtime")
+    implementation("androidx.compose.runtime:runtime-livedata")
+    implementation("androidx.compose.runtime:runtime-rxjava2")
+    implementation("androidx.compose.material:material")
+    implementation("androidx.activity:activity-compose")
+    implementation("androidx.navigation:navigation-compose")
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0")
+
+    // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.activity.compose)
-    implementation(platform(libs.androidx.compose.bom))
-    implementation(libs.androidx.ui)
-    implementation(libs.androidx.ui.graphics)
-    implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.navigation.runtime.android)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.animation.core.lint)
-    implementation(libs.androidx.espresso.core)
-    implementation(libs.androidx.media3.common.ktx)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+
+    // Hilt
+//    implementation("com.google.dagger:hilt-android:2.56.2")
+//    ksp("com.google.dagger:hilt-compiler:2.56.2")
+//    implementation("androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha03")
+//    ksp("androidx.hilt:hilt-compiler:1.0.0")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-messaging")
+
+    // Google Play Services
+    implementation("com.google.android.gms:play-services-auth:21.2.0")
+
+//    // Image Loading
+//    implementation("com.github.skydoves:landscapist-coil:2.4.7") {
+//        exclude(group = "com.squareup", module = "javapoet")
+//    }
+//    implementation("io.coil-kt:coil-compose:2.7.0") {
+//        exclude(group = "com.squareup", module = "javapoet")
+//    }
+    implementation("com.github.skydoves:landscapist-coil:2.4.7")
+    implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform("androidx.compose:compose-bom:2024.10.00"))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7") // Kiểm tra phiên bản mới nhất
-    // Import the Firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
-
-
-    // TODO: Add the dependencies for Firebase products you want to use
-    // When using the BoM, don't specify versions in Firebase dependencies
-    implementation("com.google.firebase:firebase-analytics")
-
-    implementation("com.google.firebase:firebase-auth-ktx:22.0.0")
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
-    // Thêm các SDK Firebase khác bạn muốn sử dụng (ví dụ: Realtime Database, Storage, etc.)
-    implementation("com.google.firebase:firebase-database")
-    implementation("com.google.firebase:firebase-storage")
-    implementation("com.google.firebase:firebase-messaging")
-
-    implementation("com.google.firebase:firebase-database-ktx") // Sử dụng phiên bản mới nhất
-
-    implementation("com.google.dagger:hilt-android:2.56.1")
-    ksp("com.google.dagger:hilt-android-compiler:2.56.1")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0") // Nếu dùng Compose Navigation + Hilt
-//    kapt("androidx.hilt:hilt-compiler:1.1.0")
-
-    implementation("com.google.android.gms:play-services-auth:20.5.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-    implementation("androidx.compose.ui:ui:1.6.0")
-    implementation("androidx.compose.foundation:foundation:1.6.0")
-    implementation("androidx.compose.material3:material3:1.1.2")
-    implementation("androidx.compose.material:material-icons-extended:1.5.4")
-    implementation ("com.google.accompanist:accompanist-navigation-animation:0.36.0")
-    implementation ("com.google.accompanist:accompanist-pager:0.24.13-rc")
-    implementation("com.github.skydoves:landscapist-glide:2.4.7")
-    implementation("com.github.skydoves:landscapist-coil:2.4.7")
-    implementation("androidx.compose.material:material-icons-extended-android:1.7.8")
-    implementation("androidx.compose.animation:animation:1.7.8")
-    implementation("androidx.compose.foundation:foundation:1.7.8")
-    implementation("androidx.compose.material:material:1.7.8")
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("androidx.compose.material3:material3:1.3.1")
-    implementation("androidx.compose.runtime:runtime:1.7.8")
-    implementation("androidx.compose.runtime:runtime-livedata:1.7.8")
-    implementation("androidx.compose.runtime:runtime-rxjava2:1.7.8")
-    implementation("androidx.compose.ui:ui:1.7.8")
-    implementation("androidx.concurrent:concurrent-futures-ktx:1.2.0")
-    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0-beta01")
-    implementation("androidx.contentpager:contentpager:1.0.0")
-    implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.core:core-role:1.1.0")
-    implementation("androidx.core:core-animation:1.0.0")
-    androidTestImplementation("androidx.core:core-animation-testing:1.0.0")
-    implementation("androidx.core:core-performance:1.0.0")
-    implementation("androidx.core:core-google-shortcuts:1.1.0")
-    implementation("androidx.core:core-remoteviews:1.1.0")
-    implementation("androidx.core:core-splashscreen:1.2.0-beta01")
-    implementation("androidx.core.uwb:uwb:1.0.0-alpha10")
-    implementation("androidx.credentials:credentials:1.5.0")
-
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.20") // Thay thế bằng phiên bản mong muốn
-    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.20") // Nếu bạn sử dụng reflection
-
+    // Kotlin
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.21")
 }
+
+//configurations.all {
+//    resolutionStrategy {
+//        force("com.squareup:javapoet:1.13.0")
+//    }
+//}

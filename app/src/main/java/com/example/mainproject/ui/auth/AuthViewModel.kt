@@ -49,7 +49,7 @@ class AuthViewModel(private val appViewModel: AppViewModel) : ViewModel() {
                 _authState.update { it.copy(signInState = SignInState(isSuccess = true, firebaseUser = firebaseUser)) }
                 Log.d("AuthViewModel", "Đăng nhập thành công: ${firebaseUser?.uid}")
                 // Sau khi đăng nhập thành công, lấy thông tin người dùng từ Firestore và cập nhật AppViewModel
-                appViewModel.fetchCurrentUser(firebaseUser)
+//                appViewModel.fetchCurrentUser(firebaseUser)
             } catch (e: Exception) {
                 _authState.update { it.copy(signInState = SignInState(errorMessage = e.localizedMessage ?: "Lỗi không xác định")) }
                 Log.e("AuthViewModel", "Đăng nhập thất bại: ${e.localizedMessage}")
@@ -88,7 +88,7 @@ class AuthViewModel(private val appViewModel: AppViewModel) : ViewModel() {
                 Log.d("AuthViewModel", "Đã gửi email xác minh.")
 
                 // Sau khi đăng ký thành công, lấy thông tin người dùng và cập nhật AppViewModel
-                appViewModel.fetchCurrentUser(firebaseUser)
+//                appViewModel.fetchCurrentUser(firebaseUser)
 
             } catch (e: Exception) {
                 _authState.update { it.copy(signUpState = SignUpState(errorMessage = e.localizedMessage ?: "Lỗi không xác định")) }

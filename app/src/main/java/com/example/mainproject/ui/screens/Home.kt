@@ -20,7 +20,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -28,10 +27,13 @@ import androidx.navigation.compose.rememberNavController
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.NavigationItem
 import com.example.mainproject.viewModel.AppViewModel
+//import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
-fun Home(navController: NavHostController, appViewModel: AppViewModel = hiltViewModel()) {
-    val currentUserInfo by appViewModel.currentUser.collectAsState()
+fun Home(
+    navController: NavHostController,
+    appViewModel: AppViewModel = viewModel() // Sử dụng hiltViewModel()
+){    val currentUserInfo by appViewModel.currentUser.collectAsState()
     val totalExpenseState by appViewModel.totalExpense.collectAsState()
     var selectedBottomNav by remember { mutableStateOf("home") }
     val navBackStackEntry by navController.currentBackStackEntryAsState()

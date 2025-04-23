@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -15,27 +16,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.accompanist.pager.*
 import com.example.mainproject.R
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.res.colorResource
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalPagerApi::class)
 @Composable
 fun Onboarding() {
-    val pagerState = rememberPagerState()
-    val coroutineScope = rememberCoroutineScope() // Tạo CoroutineScope gắn với vòng đời của Composable
+    val pagerState = rememberPagerState(pageCount = { 2 }) // Khởi tạo pagerState với số trang
+    val coroutineScope = rememberCoroutineScope() // Tạo CoroutineScope cho Composable
     val pages = listOf(
         OnboardingPage(
             imageRes = R.drawable.onboarding,
-            description = "Welcome to Finance Manager App"
+            description = "Chào mừng bạn đến với ứng dụng Quản lý Tài chính"
         ),
         OnboardingPage(
             imageRes = R.drawable.onboarding_other,
-            description = "Are you ready to take control of your finaces?"
+            description = "Bạn đã sẵn sàng kiểm soát tài chính của mình chưa?"
         )
     )
 
@@ -46,29 +44,28 @@ fun Onboarding() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Welcome to the Financial Management",
+            text = "Chào mừng đến với Quản lý Tài chính",
             fontSize = 24.sp,
             modifier = Modifier.padding(top = 32.dp, bottom = 16.dp),
             color = colorResource(id = R.color.textColor)
         )
 
         HorizontalPager(
-            count = pages.size,
             state = pagerState,
             modifier = Modifier.weight(1f)
         ) { page ->
             OnboardingPageContent(page = pages[page])
         }
 
-        PagerIndicator(pages.size, pagerState.currentPage)
+        PagerIndicator(pageCount = pages.size, currentPage = pagerState.currentPage)
 
         Button(
             onClick = {
                 coroutineScope.launch {
                     if (pagerState.currentPage < pages.size - 1) {
-                        pagerState.scrollToPage(pagerState.currentPage + 1)
+                        pagerState.animateScrollToPage(pagerState.currentPage + 1)
                     } else {
-                        // Xử lý khi hoàn thành onboarding
+                        // Xử lý khi hoàn thành onboarding (ví dụ: chuyển sang màn hình chính)
                     }
                 }
             },
@@ -77,7 +74,10 @@ fun Onboarding() {
                 .padding(16.dp),
             shape = RoundedCornerShape(16.dp)
         ) {
-            Text(color = colorResource(id = R.color.textColor), text = if (pagerState.currentPage < pages.size - 1) "Next" else "Get Started")
+            Text(
+                color = colorResource(id = R.color.textColor),
+                text = if (pagerState.currentPage < pages.size - 1) "Tiếp theo" else "Bắt đầu"
+            )
         }
     }
 }
@@ -123,3 +123,13 @@ data class OnboardingPage(
     val imageRes: Int,
     val description: String
 )
+
+// Lớp Activity để gọi Composable
+class OnboardingActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            Onboarding()
+        }
+    }
+}

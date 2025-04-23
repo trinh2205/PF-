@@ -16,17 +16,21 @@ import com.example.mainproject.Data.model.ListCategories
 import com.example.mainproject.ui.auth.AuthViewModel
 import com.example.mainproject.ui.screens.CategoriesScreen
 import com.example.mainproject.ui.screens.Home
-import com.example.mainproject.ui.screens.ItemScreen
+//import com.example.mainproject.ui.screens.ItemScreen
 import com.example.mainproject.ui.screens.MainScreen
 import com.example.mainproject.ui.screens.SignIn
 import com.example.mainproject.ui.screens.SignUp
 import com.example.mainproject.ui.screens.SplashScreen
 import com.example.mainproject.ui.screens.TransactionScreen
 import com.example.mainproject.viewModel.AppViewModel
+import com.example.mainproject.viewModel.AppViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun AppNavigation(navController: NavHostController) {
-    val appViewModel: AppViewModel = viewModel() // Khởi tạo AppViewModel ở đây
+fun AppNavigation(auth: FirebaseAuth,navController: NavHostController) {
+    val appViewModel: AppViewModel = viewModel(
+        factory = AppViewModelFactory(auth)
+    ) // Khởi tạo AppViewModel ở đây
 
     NavHost(navController = navController, startDestination = "splashScreen") {
         composable("splashScreen") {
@@ -63,7 +67,7 @@ fun AppNavigation(navController: NavHostController) {
             val listCategoryId = backStackEntry.arguments?.getInt("listCategoryId") ?: -1
             val listCategoryName = backStackEntry.arguments?.getString("listCategoryName") ?: ""
             val listItem = remember { ListCategories(id = listCategoryId, name = listCategoryName, icon = Icons.Filled.Fastfood) } // Tạo lại listItem
-            ItemScreen(navController = navController, listItem = listItem)
+//            ItemScreen(navController = navController, listItem = listItem)
         }
         composable(route = Routes.TRANSACTION) {
             TransactionScreen(navController = navController)

@@ -9,14 +9,14 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
-import dagger.hilt.android.lifecycle.HiltViewModel
+//import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+//import javax.inject.Inject
 
-@HiltViewModel
-class TransactionViewModel @Inject constructor(
+//@HiltViewModel
+class TransactionViewModel (
     private val database: FirebaseDatabase, // Inject FirebaseDatabase
     private val auth: FirebaseAuth // Inject FirebaseAuth
 ) : ViewModel() {

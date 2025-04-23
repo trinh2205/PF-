@@ -80,14 +80,14 @@ fun MainScreen(navController: NavController) {
             }
 
             // Liên kết "Forgot your account?"
-            ClickableText(
-                text = AnnotatedString("Forgot your account?"),
-                onClick = { /* Xử lý sự kiện quên tài khoản */ },
-                modifier = Modifier.padding(top = 8.dp),
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = colorResource(id = R.color.textColor)
-                )
-            )
+//            ClickableText(
+//                text = AnnotatedString("Forgot your account?"),
+//                onClick = { /* Xử lý sự kiện quên tài khoản */ },
+//                modifier = Modifier.padding(top = 8.dp),
+//                style = MaterialTheme.typography.bodyMedium.copy(
+//                    color = colorResource(id = R.color.textColor)
+//                )
+//            )
         }
     }
 }

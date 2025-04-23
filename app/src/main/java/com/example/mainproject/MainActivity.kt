@@ -6,16 +6,22 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.navigation.compose.rememberNavController
 import com.example.mainproject.NAVIGATION.AppNavigation
-import dagger.hilt.android.AndroidEntryPoint
+import com.example.mainproject.ui.theme.MainProjectTheme
+import com.google.firebase.auth.FirebaseAuth
 
-@AndroidEntryPoint
+//import dagger.hilt.android.AndroidEntryPoint
+
+//@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val auth = FirebaseAuth.getInstance()
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
-            AppNavigation(navController)
+            MainProjectTheme {
+                AppNavigation(auth = auth, navController = navController)
+            }
         }
     }
 }
