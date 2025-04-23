@@ -1,8 +1,14 @@
 package com.example.mainproject.ui.screens
 
+//noinspection SuspiciousImport
+import android.R
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,7 +54,19 @@ import androidx.compose.ui.unit.sp
 import com.example.mainproject.NAVIGATION.Routes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import com.example.mainproject.ui.components.BottomNavigationBar
+import com.patrykandpatrick.vico.core.draw.drawContext
+import java.nio.file.Files.size
+import kotlin.math.roundToInt
 
 
 @Preview (showBackground = true)
@@ -191,7 +209,7 @@ fun AnalysisScreen() {
             Box(modifier = Modifier
                 .weight(1f)
             ) {
-                AnalysisBackgroundBar()
+                AnalysissBackgroundBar()
 
 
             }
@@ -211,7 +229,9 @@ fun AnalysisScreen() {
     }
 }
 @Composable
-fun AnalysisBackgroundBar() {
+fun AnalysissBackgroundBar() {
+    val tabs = listOf("Daily", "Weekly", "Monthly", "Year")
+    var selectedTab by remember { mutableStateOf("Year") }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -233,8 +253,7 @@ fun AnalysisBackgroundBar() {
                     .padding(6.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                val tabs = listOf("Daily", "Weekly", "Monthly", "Year")
-                var selectedTab by remember { mutableStateOf("Daily") }
+
 
                 tabs.forEach { tab ->
                     Box(
@@ -291,11 +310,12 @@ fun AnalysisBackgroundBar() {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(180.dp)
+                            .height(160.dp)
                             .background(Color.White, shape = RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Chart Placeholder", color = Color.Gray)
+                        BarChart(selectedTab = selectedTab)
+
                     }
                 }
             }
@@ -372,3 +392,156 @@ fun AnalysisBackgroundBar() {
         }
     }
 }
+@Composable
+fun BarChart(selectedTab: String) {
+    val dailyData1 = listOf(3000f, 1000f, 2000f, 500f, 4000f, 700f, 1500f)
+    val dailyData2 = listOf(6000f, 200f, 5000f, 3500f, 10000f, 1000f, 6500f)
+
+    val weeklyData1 = listOf(6000f, 3000f, 4000f, 2000f)
+    val weeklyData2 = listOf(10000f, 5000f, 8000f, 7000f)
+
+    val monthlyData1 = listOf(8000f, 10000f, 6000f, 5000f, 7000f, 9000f, 11000f)
+    val monthlyData2 = listOf(12000f, 8000f, 7000f, 9500f, 10000f, 8500f, 13000f)
+
+    val yearlyData1 = listOf(60000f, 80000f, 90000f, 70000f, 100000f, 95000f)
+    val yearlyData2 = listOf(70000f, 85000f, 95000f, 80000f, 110000f, 97000f)
+
+    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val weeks = listOf("1st", "2nd", "3rd", "4th Week")
+    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul")
+    val years = listOf("2020", "2021", "2022", "2023", "2024", "2025")
+
+    val chartData1 = when (selectedTab) {
+        "Weekly" -> weeklyData1
+        "Monthly" -> monthlyData1
+        "Year" -> yearlyData1
+        else -> dailyData1
+    }
+
+    val chartData2 = when (selectedTab) {
+        "Weekly" -> weeklyData2
+        "Monthly" -> monthlyData2
+        "Year" -> yearlyData2
+        else -> dailyData2
+    }
+
+    val labels = when (selectedTab) {
+        "Weekly" -> weeks
+        "Monthly" -> months
+        "Year" -> years
+        else -> days
+    }
+
+    val maxValue = (chartData1 + chartData2).maxOrNull()?.coerceAtLeast(1f) ?: 1f
+
+    val barColors = listOf(Color(0xFF00C2A8), Color(0xFF007BFF))
+    val chartHeight = 120.dp
+    val barWidth = 6.dp
+    val spaceBetweenBars = 4.dp
+    val barCornerRadius = 50.dp
+
+    // 🔁 Tự động điều chỉnh label dựa vào chế độ
+    val labelValues = if (selectedTab == "Year") listOf("60k", "80k", "100k") else listOf("5k", "10k", "15k")
+    val textColor = Color(0xFF4AA8FF)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFE6FCE9))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Row(modifier = Modifier.height(chartHeight)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(end = 4.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                labelValues.reversed().forEach {
+                    Text(text = it, fontSize = 12.sp, color = textColor)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val canvasHeight = size.height
+                    val stepY = canvasHeight / 3
+                    repeat(3) { i ->
+                        val y = stepY * (i + 1)
+                        drawLine(
+                            color = textColor,
+                            start = Offset(0f, canvasHeight - y),
+                            end = Offset(size.width, canvasHeight - y),
+                            strokeWidth = 2f,
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f))
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(start = 4.dp, end = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    labels.indices.forEach { i ->
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(
+                                verticalAlignment = Alignment.Bottom,
+                                horizontalArrangement = Arrangement.spacedBy(spaceBetweenBars)
+                            ) {
+                                listOf(chartData1[i], chartData2[i]).forEachIndexed { j, value ->
+                                    val heightRatio = value / maxValue
+                                    val animatedHeight by animateDpAsState(
+                                        targetValue = chartHeight * heightRatio,
+                                        animationSpec = tween(durationMillis = 600)
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .width(barWidth)
+                                            .height(animatedHeight)
+                                            .clip(RoundedCornerShape(barCornerRadius))
+                                            .background(barColors[j])
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Canvas(modifier = Modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .padding(start = 28.dp)) {
+            drawLine(
+                color = Color.Black,
+                start = Offset.Zero,
+                end = Offset(size.width, 0f),
+                strokeWidth = 2f
+            )
+        }
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp, start = 28.dp, end = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            labels.forEach {
+                Text(
+                    text = it,
+                    fontSize = 12.sp,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
+
