@@ -189,7 +189,7 @@ fun VerificationStatus(isVerified: Boolean) {
 fun TransactionSection(appViewModel: AppViewModel) {
     var selectedFilter by remember { mutableStateOf("Weekly") }
     val transactionsMap by appViewModel.transactions.collectAsState()
-    val transactionsList = transactionsMap.values.toList().sortedByDescending { transaction -> transaction.date }
+    val transactionsList = transactionsMap.values.toList().sortedByDescending { transaction.date }
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -402,11 +402,11 @@ fun TransactionItem(transaction: Transaction) {
                 fontSize = 12.sp,
                 color = Color.Gray
             )
-            Text(
-                text = transaction.amount,
-                fontWeight = FontWeight.Bold,
-                color = if (transaction.isPositive) Color.Black else Color.Red
-            )
+//            Text(
+//                text = transaction.amount,
+//                fontWeight = FontWeight.Bold,
+//                color = if (transaction.isPositive) Color.Black else Color.Red
+//            )
         }
     }
 }
