@@ -2,8 +2,9 @@ package com.example.mainproject.Data.model
 
 import androidx.compose.ui.graphics.vector.ImageVector
 
+// Dùng cho UI
 data class ListCategories(
-    var id: Int,
-    var name: String,
-    var icon: ImageVector
+    val id: String,
+    val name: String,
+    val icon: ImageVector
 )

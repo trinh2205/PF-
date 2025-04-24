@@ -39,182 +39,119 @@ import kotlinx.coroutines.launch
 
 
 @Composable
-fun SignIn(navController: NavController,authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(viewModel<AppViewModel>()))) {
-    Box(modifier = Modifier.fillMaxSize().background(colorResource( id = R.color.mainColor))) {
-        // Layer 1: Background + "Welcome"
+fun SignIn(
+    navController: NavController,
+    viewModel: AuthViewModel,
+    emailFromSignUp: String? = null,
+    passwordFromSignUp: String? = null
+) {
+    var email by remember { mutableStateOf(emailFromSignUp ?: "") }
+    var password by remember { mutableStateOf(passwordFromSignUp ?: "") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    val state by viewModel.authState.collectAsState()
+
+    Box(modifier = Modifier.fillMaxSize().background(colorResource(id = R.color.mainColor))) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 150.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .padding(top = 60.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Welcome",
-                fontSize = 48.sp,
-                color = colorResource(id = R.color.textColor),
-                fontWeight = FontWeight.Bold
+                text = "Sign In",
+                fontSize = 32.sp,
+                color = colorResource(id = R.color.textColor)
             )
         }
 
-        // Layer 2: Form đăng nhập với bo góc
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.80f) // Chiếm 75% màn hình, bạn có thể điều chỉnh
+                .fillMaxHeight(0.80f)
                 .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 80.dp, topEnd = 80.dp), // Bo góc trên
-            color = colorResource(id = R.color.mainColor_other) // Màu nền form
+            shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+            color = colorResource(id = R.color.mainColor_other)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 50.dp, vertical = 50.dp),
+                    .padding(horizontal = 32.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Các trường nhập và nút đăng nhập
-                LoginForm(navController)
-            }
-        }
-    }
-}
-
-@OptIn(UnstableApi::class)
-@Composable
-fun LoginForm(navController: NavController, viewModel: AuthViewModel = viewModel()) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    val tag = "SignInScreen"
-    val scope = rememberCoroutineScope()
-    val state = viewModel.authState.collectAsState() // Lấy AuthState
-
-    OutlinedTextField(
-        value = username,
-        onValueChange = { username = it },
-        label = { Text(text = "Email") },
-        placeholder = { Text(text = "example@example.com") },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        keyboardOptions = KeyboardOptions.Default.copy(
-            keyboardType = KeyboardType.Email,
-            imeAction = ImeAction.Next
-        )
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    // Password
-    OutlinedTextField(
-        value = password,
-        onValueChange = { password = it },
-        label = { Text(text = "Password") },
-        placeholder = { Text(text = "Enter your password") },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        keyboardOptions = KeyboardOptions.Default.copy(
-            keyboardType = KeyboardType.Password,
-            imeAction = ImeAction.Done
-        ),
-        trailingIcon = {
-            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                Icon(
-                    imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                    contentDescription = "Toggle Password Visibility"
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text(text = "Email") },
+                    placeholder = { Text(text = "example@example.com") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Next
+                    )
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(text = "Password") },
+                    placeholder = { Text(text = "Enter your password") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = "Toggle Password Visibility"
+                            )
+                        }
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        scope.launch {
+                            viewModel.signIn(email, password)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(id = R.color.buttonColor),
+                        contentColor = colorResource(id = R.color.textColor)
+                    )
+                ) {
+                    Text(text = "Sign In")
+                }
+
+                if (state.signInState.isLoading) {
+                    CircularProgressIndicator()
+                }
+
+                state.signInState.errorMessage?.let { error ->
+                    Text(text = error, color = MaterialTheme.colorScheme.error)
+                }
+
+                if (state.signInState.isSuccess) {
+                    LaunchedEffect(Unit) {
+                        navController.navigate(Routes.HOME) {
+                            popUpTo(navController.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                    }
+                    Text(text = "Đăng nhập thành công!", color = Color.Green)
+                }
             }
-        }
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Button(
-        onClick = {
-//            Log.d(tag, "Đăng nhập với Email: $username, Mật khẩu: $password")
-            scope.launch {
-                viewModel.signIn(username, password)
-            }
-        },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = colorResource(id = R.color.mainColor),
-            contentColor = colorResource(id = R.color.mainColor_other)
-        )
-    ) {
-        Text(text = "Sign in")
-    }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    if (state.value.signInState.isLoading) { // Truy cập signUpState
-        CircularProgressIndicator()
-    }
-
-    state.value.signInState.errorMessage?.let { error -> // Truy cập signUpState
-        Text(text = error, color = MaterialTheme.colorScheme.error)
-    }
-
-    if (state.value.signInState.isSuccess) { // Truy cập signUpState
-        Text(text = "Đăng nhập thành công!", color = Color.Green)
-         navController.navigate(route = com.example.mainproject.NAVIGATION.Routes.HOME)
-    }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Text(
-        text = "forgot password ?",
-        fontSize = 14.sp,
-        color = colorResource(id = R.color.textColor)
-    )
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Button(
-        onClick = {
-             navController.navigate(Routes.SIGN_UP)
-        },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = colorResource(id = R.color.buttonColor),
-            contentColor = colorResource(id = R.color.textColor)
-        )
-    ) {
-        Text(text = "Sign up")
-    }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Text(text = "or sign up with")
-
-    Spacer(modifier = Modifier.height(8.dp))
-
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(
-            onClick = { /* Handle Facebook login */ },
-            modifier = Modifier.size(48.dp) // Kích thước icon
-                .clip(CircleShape) // Bo tròn icon
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.facebook),
-                contentDescription = "Login with Facebook",
-                tint = Color.Unspecified
-            )
-        }
-
-        IconButton(
-            onClick = { /* Handle Google login */ },
-            modifier = Modifier.size(48.dp).clip(CircleShape)
-        ) {
-            Icon(
-                painter = painterResource(id = R.drawable.google),
-                contentDescription = "Login with Google",
-                tint = Color.Unspecified
-            )
         }
     }
 }

@@ -3,6 +3,7 @@ package com.example.mainproject.viewModel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.mainproject.Data.model.Transaction
 import com.example.mainproject.Data.model.UserInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -24,14 +25,54 @@ class AppViewModel(
     private val database = FirebaseDatabase.getInstance()
     private var userListener: ValueEventListener? = null
     private var categoriesListener: ValueEventListener? = null
+    private var transactionsListener: ValueEventListener? = null
 
     private val _totalExpense = MutableStateFlow(0.0)
     val totalExpense: StateFlow<Double> = _totalExpense
+
+    private val _totalBudget = MutableStateFlow(0.0)
+    val totalBudget: StateFlow<Double> = _totalBudget
+
+    private val _transactions = MutableStateFlow<Map<String, List<Transaction>>>(emptyMap())
+    val transactions: StateFlow<Map<String, List<Transaction>>> = _transactions
 
     init {
         Log.d("AppViewModel", "AppViewModel initialized")
         loadUserDataAndExpenses()
     }
+
+    private fun startTransactionsListener(userId: String) {
+        val transactionsRef = database.getReference("users").child(userId).child("transactions")
+        transactionsListener = transactionsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val transactionsMap = mutableMapOf<String, List<Transaction>>()
+
+                for (transactionSnapshot in snapshot.children) {
+                    val transactionList = mutableListOf<Transaction>()
+
+                    // Giả sử dữ liệu trong transactionSnapshot có cấu trúc như sau:
+                    for (transactionChildSnapshot in transactionSnapshot.children) {
+                        val transaction = transactionChildSnapshot.getValue(Transaction::class.java)
+                        if (transaction != null) {
+                            transactionList.add(transaction)
+                        }
+                    }
+
+                    // Cập nhật giá trị map với khóa là danh mục (hoặc ngày, hoặc ID khác) và giá trị là danh sách giao dịch
+                    transactionsMap[transactionSnapshot.key ?: ""] = transactionList
+                }
+
+                // Cập nhật StateFlow
+                _transactions.value = transactionsMap
+                Log.d("AppViewModel", "Transactions updated: $transactionsMap")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("AppViewModel", "Error reading transactions: ${error.message}")
+            }
+        })
+    }
+
 
     private fun loadUserDataAndExpenses() {
         val userId = auth.currentUser?.uid
