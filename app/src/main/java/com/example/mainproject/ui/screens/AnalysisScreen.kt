@@ -1,14 +1,11 @@
 package com.example.mainproject.ui.screens
 
 //noinspection SuspiciousImport
-import android.R
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +15,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Checkbox
@@ -31,8 +25,6 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.CallMade
-import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CallMade
 import androidx.compose.material.icons.filled.CallReceived
@@ -51,42 +43,42 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mainproject.NAVIGATION.Routes
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import com.example.mainproject.ui.components.BottomNavigationBar
-import com.patrykandpatrick.vico.core.draw.drawContext
-import java.nio.file.Files.size
-import kotlin.math.roundToInt
 
 
 @Preview (showBackground = true)
 @Composable
 fun AnalysisScreen() {
+    var isCalendarVisible by remember { mutableStateOf(false) } // Thêm state
+
+    if (isCalendarVisible) {
+        // Nếu click vào icon Calendar -> chuyển sang CalendarBar()
+        CalendarBar(
+            onBackClick = { isCalendarVisible = false } // Khi nhấn quay lại
+        )
+    } else {
+        // Giao diện mặc định Analysis
+        AnalysisContent(
+            onCalendarClick = { isCalendarVisible = true }
+        )
+    }
+}
+@Composable
+fun AnalysisContent(onCalendarClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .fillMaxHeight()
-            .background(
-                color = Color(0xFFFFFFFF),
-            )
+            .background(Color(0xFFFFFFFF))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .background(
-                    color = Color(0xFF3498DB),
-                )
+                .background(Color(0xFF3498DB))
                 .verticalScroll(rememberScrollState())
         ) {
             Spacer(modifier = Modifier.height(30.dp))
@@ -97,20 +89,31 @@ fun AnalysisScreen() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = null,
+                    tint = Color.White,
+                )
                 Text(
                     text = "Analysis",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
                     color = Color.White
                 )
-                Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.clickable { onCalendarClick() } // Bấm vào icon Calendar
+                )
             }
+
             Spacer(modifier = Modifier.height(30.dp))
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 50.dp), // Thêm padding để dễ canh chỉnh
+                    .padding(horizontal = 50.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -124,7 +127,6 @@ fun AnalysisScreen() {
                     )
                 }
 
-                // Separator - thanh trắng ở giữa
                 Box(
                     modifier = Modifier
                         .width(1.dp)
@@ -142,9 +144,9 @@ fun AnalysisScreen() {
                     )
                 }
             }
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Thanh phần trăm (Progress bar tùy chỉnh)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -152,12 +154,11 @@ fun AnalysisScreen() {
                     .padding(horizontal = 40.dp)
                     .clip(RoundedCornerShape(20.dp))
                     .background(Color(0xFFE6FFF9))
-
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .fillMaxWidth(0.3f) // 30%
+                        .fillMaxWidth(0.3f)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.Black)
                 ) {
@@ -183,7 +184,6 @@ fun AnalysisScreen() {
 
             Spacer(modifier = Modifier.height(5.dp))
 
-            // Checkbox và dòng thông báo
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -201,35 +201,29 @@ fun AnalysisScreen() {
                     color = Color.Black,
                     fontSize = 14.sp
                 )
-
             }
+
             Spacer(modifier = Modifier.height(16.dp))
 
-// Nền trắng phía dưới cùng và thanh công cụ bo góc trên
-            Box(modifier = Modifier
-                .weight(1f)
-            ) {
-                AnalysissBackgroundBar()
-
-
+            Box(modifier = Modifier.weight(1f)) {
+                AnalysissBackgroundBar(
+                    onCalendarClick = onCalendarClick // Truyền sự kiện click tiếp xuống
+                )
             }
-            Box(modifier = Modifier
 
-                .background(Color(0xFFFFFFFF))) {
+            Box(modifier = Modifier.background(Color.White)) {
                 BottomNavigationBar(
                     selectedItem = TODO(),
                     onItemClick = TODO(),
                     items = TODO()
                 )
-
             }
-
-
         }
     }
 }
+
 @Composable
-fun AnalysissBackgroundBar() {
+fun AnalysissBackgroundBar(onCalendarClick: () -> Unit) {
     val tabs = listOf("Daily", "Weekly", "Monthly", "Year")
     var selectedTab by remember { mutableStateOf("Year") }
     Box(
@@ -299,7 +293,7 @@ fun AnalysissBackgroundBar() {
                             IconButton(onClick = { }) {
                                 Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF052224))
                             }
-                            IconButton(onClick = { }) {
+                            IconButton(onClick = { onCalendarClick() }) {
                                 Icon(Icons.Default.DateRange, contentDescription = "Calendar", tint = Color(0xFF052224))
                             }
                         }
@@ -543,5 +537,3 @@ fun BarChart(selectedTab: String) {
         }
     }
 }
-
-

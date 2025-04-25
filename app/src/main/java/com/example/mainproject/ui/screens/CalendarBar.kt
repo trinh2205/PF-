@@ -64,14 +64,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.style.TextAlign
 import com.example.mainproject.ui.components.BottomNavigationBar
+
 import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth
 
 
-@Preview(showBackground = true)
+
 @Composable
-fun CalendarBar() {
+fun CalendarBar(onBackClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -91,8 +92,19 @@ fun CalendarBar() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
-                Text("Calendar", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier
+                        .clickable { onBackClick() } // <<< Thêm sự kiện click cho nút Back
+                )
+                Text(
+                    text = "Calendar",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.White
+                )
                 Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
             }
 
@@ -111,6 +123,7 @@ fun CalendarBar() {
         )
     }
 }
+
 
 @Composable
 fun CalendarBackgroundBar() {
