@@ -21,6 +21,7 @@ import com.example.mainproject.ui.screens.Home
 import com.example.mainproject.ui.screens.MainScreen
 import com.example.mainproject.ui.screens.NotificationItem
 import com.example.mainproject.ui.screens.NotificationScreen
+import com.example.mainproject.ui.screens.ProfileScreen
 import com.example.mainproject.ui.screens.SignIn
 import com.example.mainproject.ui.screens.SignUp
 import com.example.mainproject.ui.screens.SplashScreen
@@ -75,6 +76,9 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         }
         composable(route = Routes.CATEGORIES) {
             CategoriesScreen(navController = navController)
+        }
+        composable(route = Routes.PROFILE) {
+            ProfileScreen(navController = navController)
         }
         composable(
             route = "itemScreen/{listCategoryId}/{listCategoryName}",
