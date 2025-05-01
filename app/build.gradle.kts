@@ -47,6 +47,16 @@ android {
 }
 
 dependencies {
+    // Các dependencies khác của bạn
+
+    // Các dependencies Firebase khác của bạn (analytics, auth, firestore, v.v.)
+    implementation(platform("com.google.firebase:firebase-bom:33.13.0")) // Bạn đang dùng phiên bản này
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-messaging")
 //    implementation("com.squareup:javapoet:1.13.0")
 
     // Material
@@ -54,10 +64,10 @@ dependencies {
 
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
-    implementation("androidx.core:core-splashscreen:1.0.1")
+    implementation(libs.core.splashscreen)
 
     // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2024.10.00"))
+    implementation(platform(libs.androidx.compose.bom))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
@@ -69,7 +79,7 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-livedata")
     implementation("androidx.compose.runtime:runtime-rxjava2")
     implementation("androidx.compose.material:material")
-    implementation("androidx.activity:activity-compose")
+    implementation(libs.androidx.activity.compose)
     implementation("androidx.navigation:navigation-compose")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0")
 

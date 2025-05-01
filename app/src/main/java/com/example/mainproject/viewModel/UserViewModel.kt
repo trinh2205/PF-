@@ -1,3 +1,4 @@
+
 package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
@@ -25,18 +26,14 @@ class UserViewModel : ViewModel() {
         email: String,
         passwordHash: String, // Nhận mật khẩu đã băm
         isVerified: Boolean,
-        verificationCode: String,
         budget: Double,
-        createdAt: LocalDateTime
+        createdAt: String
     ) {
         _currentUser.value = UserInfo(
             name = userName,
             userId = userId,
             email = email,
-            passwordHash = passwordHash,
             isVerified = isVerified,
-            verificationCode = verificationCode,
-            budget = budget,
             createdAt = createdAt
         )
         _isLoggedIn.value = true
@@ -54,9 +51,9 @@ class UserViewModel : ViewModel() {
     }
 
     // Hàm này có thể được gọi khi cần cập nhật ngân sách
-    fun updateUserBudget(newBudget: Double) {
-        _currentUser.value = _currentUser.value?.copy(budget = newBudget)
-    }
+//    fun updateUserBudget(newBudget: Double) {
+//        _currentUser.value = _currentUser.value?.copy(budget = newBudget)
+//    }
 
     // Hàm này sẽ được gọi khi người dùng đăng xuất
     fun logout() {
