@@ -1,3 +1,4 @@
+
 package com.example.mainproject.ui.screens
 
 import android.util.Log
@@ -24,22 +25,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mainproject.R
 import com.example.mainproject.ui.auth.AuthViewModel
+import com.example.mainproject.ui.auth.SignUpState
 import kotlinx.coroutines.launch
 
 
 @Composable
 fun SignUp(
     navController: NavController,
-    viewModel: AuthViewModel = viewModel(),
     authViewModel: AuthViewModel
 ) {
-    Box(modifier = Modifier.fillMaxSize().background(colorResource( id = R.color.mainColor))) {
-        // Layer 1: Background + "Welcome"
+    Box(modifier = Modifier.fillMaxSize().background(colorResource(id = R.color.mainColor))) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 60.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Create Account",
@@ -48,14 +48,13 @@ fun SignUp(
             )
         }
 
-        // Layer 2: Form đăng nhập với bo góc
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.80f) // Chiếm 75% màn hình, bạn có thể điều chỉnh
+                .fillMaxHeight(0.80f)
                 .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp), // Bo góc trên
-            color = colorResource(id = R.color.mainColor_other) // Màu nền form
+            shape = RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp),
+            color = colorResource(id = R.color.mainColor_other)
         ) {
             Column(
                 modifier = Modifier
@@ -63,15 +62,17 @@ fun SignUp(
                     .padding(horizontal = 32.dp, vertical = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Các trường nhập và nút đăng nhập
-                SignUpForm(viewModel = viewModel)
+                SignUpForm(navController = navController, viewModel = authViewModel)
             }
         }
     }
 }
 
 @Composable
-fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
+fun SignUpForm(
+    navController: NavController,
+    viewModel: AuthViewModel
+) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -80,12 +81,10 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    val tag = "SignUpScreen"
     val scope = rememberCoroutineScope()
-    val state = viewModel.authState.collectAsState() // Lấy AuthState
+    val state by viewModel.authState.collectAsState()
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Full Name
         OutlinedTextField(
             value = fullName,
             onValueChange = { fullName = it },
@@ -101,7 +100,6 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Email
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -117,7 +115,6 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Phone Number
         OutlinedTextField(
             value = phone,
             onValueChange = { phone = it },
@@ -133,7 +130,6 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Date of Birth
         OutlinedTextField(
             value = dob,
             onValueChange = { dob = it },
@@ -149,7 +145,6 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Password
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -174,7 +169,6 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Confirm Password
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
@@ -207,15 +201,16 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Sign Up Button
         Button(
             onClick = {
-                Log.d(
-                    tag,
-                    "Đăng ký với: Full Name=$fullName, Email=$email, Phone=$phone, DOB=$dob, Password=$password, Confirm Password=$confirmPassword"
-                )
-                scope.launch {
-                    viewModel.signUp(email, password, fullName)
+                if (password == confirmPassword) {
+                    scope.launch {
+                        viewModel.signUp(email, password, fullName, phone)
+                    }
+                } else {
+                    scope.launch {
+                        viewModel.setSignUpError("Mật khẩu không khớp")
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
@@ -228,17 +223,24 @@ fun SignUpForm(viewModel: AuthViewModel = viewModel()) {
             Text(text = "Sign Up")
         }
 
-        if (state.value.signUpState.isLoading) { // Truy cập signUpState
+        if (state.signUpState.isLoading) {
             CircularProgressIndicator()
         }
 
-        state.value.signUpState.errorMessage?.let { error -> // Truy cập signUpState
+        state.signUpState.errorMessage?.let { error ->
             Text(text = error, color = MaterialTheme.colorScheme.error)
         }
 
-        if (state.value.signUpState.isSuccess) { // Truy cập signUpState
+        if (state.signUpState.isSuccess) {
+            LaunchedEffect(state.signUpState) {
+                val email = state.signUpState.email ?: ""
+                val password = state.signUpState.password ?: ""
+                navController.navigate("signIn/$email/$password") {
+                    popUpTo(navController.graph.startDestinationId)
+                    launchSingleTop = true
+                }
+            }
             Text(text = "Đăng ký thành công!", color = Color.Green)
-            // navController.navigate(Routes.HOME)
         }
     }
 }

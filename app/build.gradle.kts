@@ -47,7 +47,6 @@ android {
 }
 
 dependencies {
-    // JavaPoet
 //    implementation("com.squareup:javapoet:1.13.0")
 
     // Material
@@ -106,10 +105,6 @@ dependencies {
 //    }
     implementation("com.github.skydoves:landscapist-coil:2.4.7")
     implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("com.patrykandpatrick.vico:compose:1.13.0")
-    implementation("com.patrykandpatrick.vico:core:1.13.0")
-    implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
-
 
     // Testing
     testImplementation(libs.junit)
