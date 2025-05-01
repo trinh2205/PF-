@@ -1,0 +1,34 @@
+*   [33mb5314e2[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Merge pull request #3 from trinh2205/trinh
+[31m|[m[32m\[m  
+[31m|[m * [33m5db26ea[m[33m ([m[1;31morigin/trinh[m[33m)[m  Access to calendarBar
+* [32m|[m [33md4ed007[m Merge pull request #2 from trinh2205/trinh
+[33m|[m[32m\[m[32m|[m 
+[33m|[m * [33m89e0641[m  Ui search + edit profile
+* [34m|[m [33m44fa81a[m Merge pull request #1 from trinh2205/trinh
+[35m|[m[34m\[m[34m|[m 
+[35m|[m * [33m174cc22[m Build tam du lieu cho bieu do
+[35m|[m[35m/[m  
+* [33m71a0d2c[m init project + calenderBar + AnalysisScreen + Profile
+* [33m1ab0b6f[m[33m ([m[1;31morigin/bao-dev-connect-FB[m[33m)[m Connect the database successfully !
+* [33mf4ff473[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbao-dev[m[33m, [m[1;31morigin/bao-dev[m[33m)[m fixing the connect FB !
+* [33mea5d98e[m fixing the connect FB
+*   [33m5236e27[m fixed the configuration !
+[1;32m|[m[1;33m\[m  
+[1;32m|[m *   [33m42997f2[m Merge branch 'master' into bao-dev
+[1;32m|[m [1;34m|[m[1;35m\[m  
+[1;32m|[m [1;34m|[m *   [33mc13bf8a[m Merge pull request #1 from trinh2205/TrinhChau
+[1;32m|[m [1;34m|[m [1;36m|[m[31m\[m  
+[1;32m|[m [1;34m|[m [1;36m|[m * [33mc757fe2[m git commit-m"QuickAnalysis"
+[1;32m|[m [1;34m|[m [1;36m|[m[1;36m/[m  
+* [1;34m|[m [1;36m|[m [33mf97e592[m fixed the configuration !
+* [1;34m|[m [1;36m|[m [33m31b6b41[m Lastest project with many bugs !
+* [1;34m|[m [1;36m|[m [33ma13e271[m finishing the categoryScreen and transferScreen !
+* [1;34m|[m [1;36m|[m   [33md5b48dd[m Merge branch 'master' into bao-dev
+[1;34m|[m[1;36m\[m [1;34m\[m [1;36m\[m  
+[1;34m|[m [1;36m|[m[1;34m/[m [1;36m/[m  
+[1;34m|[m[1;34m/[m[1;36m|[m [1;36m/[m   
+[1;34m|[m [1;36m|[m[1;36m/[m    
+[1;34m|[m * [33m4c5d35d[m git commit-m"Home"
+* [33m|[m [33md5bede4[m Finish sign in and up without signing in with GG and FB
+[33m|[m[33m/[m  
+* [33mcbcad9d[m init project

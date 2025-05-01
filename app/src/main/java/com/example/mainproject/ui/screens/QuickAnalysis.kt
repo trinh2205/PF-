@@ -22,6 +22,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Notifications
@@ -69,7 +70,7 @@ fun QuickAnalysis(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
                 Text(
                     text = "Quickly Analysis",
                     fontWeight = FontWeight.Bold,
@@ -79,9 +80,9 @@ fun QuickAnalysis(navController: NavController) {
                 Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
             }
             FinancialCard(
-                onClick = {
-                    navController.navigate(Routes.ANALYTICS)
-                }
+//                onClick = {
+//                    navController.navigate(Routes.ANALYTICS)
+//                }
             )
             Spacer(modifier = Modifier.height(16.dp))
             Box(modifier = Modifier
@@ -185,8 +186,8 @@ fun QuickAnalysisBackgroundBar() {
             }
             Spacer(modifier = Modifier.height(16.dp))
             // 3. Danh sách giao dịch
-            TransactionList(filter = "Monthly")
-            TransactionList(filter = "Weekly")
+//            TransactionList(filter = "Monthly")
+//            TransactionList(filter = "Weekly")
         }
     }
 }
