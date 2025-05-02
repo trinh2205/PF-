@@ -5,7 +5,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.util.UnstableApi
+
 import com.example.mainproject.Data.model.Account
 import com.example.mainproject.Data.model.Budget
 import com.example.mainproject.Data.model.Category
@@ -17,6 +17,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import dagger.hilt.android.UnstableApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -198,13 +199,7 @@ class TransactionViewModel : ViewModel() {
         return _expenses.value[categoryId] ?: emptyList()
     }
 
-    fun addExpenses(categoryId: String, expense: Expense) {
-        val currentList = _expenses.value[categoryId] ?: emptyList()
-        val updatedList = currentList + expense
-        _expenses.value = _expenses.value.toMutableMap().apply {
-            put(categoryId, updatedList)
-        }
-    }
+
 
     fun addExpense(newExpense: Expense) {
         viewModelScope.launch {

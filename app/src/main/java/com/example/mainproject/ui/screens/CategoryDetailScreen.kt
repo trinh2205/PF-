@@ -22,6 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.key.*
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -34,6 +36,8 @@ import com.example.mainproject.ui.screens.categoryIcons
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.util.Locale
+import androidx.compose.foundation.text.KeyboardOptions
+
 
 @Composable
 fun CategoryDetailScreen(
@@ -58,6 +62,7 @@ fun CategoryDetailScreen(
     var showDialog by remember { mutableStateOf(false) }
     var newExpenseTitle by remember { mutableStateOf("") }
     var newExpenseAmount by remember { mutableStateOf("") }
+    var amountError by remember { mutableStateOf<String?>(null) }
 
     if (showDialog) {
         AlertDialog(
@@ -74,28 +79,53 @@ fun CategoryDetailScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = newExpenseAmount,
-                        onValueChange = { newExpenseAmount = it },
+                        onValueChange = { input ->
+                            // Only allow numeric input (including decimal point)
+                            if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                newExpenseAmount = input
+                                amountError = null
+                            } else {
+                                amountError = "Please enter a valid number"
+                            }
+                        },
                         label = { Text("Amount") },
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        isError = amountError != null,
+                        supportingText = {
+                            amountError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                        }
                     )
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    val amount = newExpenseAmount.toDoubleOrNull() ?: 0.0
-                    if (newExpenseTitle.isNotBlank() && amount > 0) {
-                        val newExpense = Expense(
-                            title = newExpenseTitle,
-                            amount = amount,
-                            date = LocalDate.now().toString(),
-                            categoryId = categoryId
-                        )
-                        viewModel.addExpense(newExpense)
-                        newExpenseTitle = ""
-                        newExpenseAmount = ""
-                        showDialog = false
+                Button(
+                    onClick = {
+                        val amount = newExpenseAmount.toDoubleOrNull() ?: 0.0
+                        if (newExpenseTitle.isNotBlank() && amount > 0 && amountError == null) {
+                            val newExpense = Expense(
+                                title = newExpenseTitle,
+                                amount = amount,
+                                date = LocalDate.now().toString(),
+                                categoryId = categoryId
+                            )
+                            viewModel.addExpense(newExpense)
+                            newExpenseTitle = ""
+                            newExpenseAmount = ""
+                            amountError = null
+                            showDialog = false
+                        } else {
+                            if (newExpenseTitle.isBlank()) {
+                                // You can add title error handling here if needed
+                            }
+                            if (amount <= 0 || amountError != null) {
+                                amountError = "Please enter a valid positive number"
+                            }
+                        }
                     }
-                }) {
+                ) {
                     Text("Add")
                 }
             },
