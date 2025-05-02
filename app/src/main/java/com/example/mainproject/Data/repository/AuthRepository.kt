@@ -1,5 +1,6 @@
 package com.example.mainproject.Data.repository
 
+import android.util.Log
 import com.example.mainproject.Data.model.Account
 import com.example.mainproject.Data.model.UserInfo
 import com.google.firebase.auth.FirebaseAuth
@@ -21,7 +22,12 @@ class AuthRepository {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnCompleteListener { task ->
                 if (task.isSuccessful) {
-                    val uid = auth.currentUser?.uid ?: return@addOnCompleteListener
+                    val uid = task.result?.user?.uid
+                    if (uid == null) {
+                        callback(false, "User ID is null", null, null)
+                        return@addOnCompleteListener
+                    }
+
                     val userInfo = UserInfo(
                         userId = uid,
                         email = email,
@@ -31,28 +37,39 @@ class AuthRepository {
                         createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     )
 
+                    val accountId = database.child("users").child(uid).child("accounts").push().key
+                    if (accountId == null) {
+                        callback(false, "Failed to generate account ID", null, null)
+                        Log.e("exit: ","exit here")
+                        return@addOnCompleteListener
+                    }
+
                     val defaultAccount = Account(
-                        id = database.child("users").child(uid).child("accounts").push().key ?: "",
+                        id = accountId,
                         name = fullName,
                         balance = 1000.0,
                         currency = "VND"
                     )
 
+                    // Create user structure
                     val userData = mapOf(
                         "profile" to userInfo,
                         "categories" to emptyMap<String, Any>(),
-                        "accounts" to mapOf(defaultAccount.id to defaultAccount),
+                        "accounts" to mapOf(accountId to defaultAccount),
                         "transactions" to emptyMap<String, Any>(),
                         "budgets" to emptyMap<String, Any>(),
                         "templates" to emptyMap<String, Any>()
                     )
 
+                    // Save to Realtime Database
                     database.child("users").child(uid)
                         .setValue(userData)
                         .addOnCompleteListener { saveTask ->
                             if (saveTask.isSuccessful) {
+                                Log.d("Firebase", "User data saved successfully.")
                                 callback(true, null, email, password)
                             } else {
+                                Log.e("Task exception: ","Exception" + task.exception?.message)
                                 callback(false, saveTask.exception?.message, null, null)
                             }
                         }

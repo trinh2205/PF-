@@ -115,6 +115,7 @@ dependencies {
 //    }
     implementation("com.github.skydoves:landscapist-coil:2.4.7")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation(libs.androidx.media3.common.ktx)
 
     // Testing
     testImplementation(libs.junit)

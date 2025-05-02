@@ -3,6 +3,7 @@ package com.example.mainproject.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,10 +53,12 @@ import androidx.navigation.NavController
 import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.delay
 
-@Preview(showBackground = true)
+//@Preview(showBackground = true) pass navController de handle logout va cac backend khac
 @Composable
-fun Profile() {
+fun Profile(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -95,6 +98,8 @@ fun Profile() {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 140.dp) // ✅ Đẩy xuống dưới phần xanh
+            ,
+            navController = navController
         )
 
         // Avatar
@@ -135,7 +140,7 @@ fun Profile() {
 
 
 @Composable
-fun ProfileBackgroundBar(modifier: Modifier = Modifier) {
+fun ProfileBackgroundBar(modifier: Modifier = Modifier, navController: NavController) {
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -155,15 +160,22 @@ fun ProfileBackgroundBar(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Danh sách chức năng
-            ProfileOption(icon = Icons.Default.Person, title = "Edit Profile")
-            ProfileOption(icon = Icons.Default.Settings, title = "Setting")
-            ProfileOption(icon = Icons.Default.Logout, title = "Logout")
+            ProfileOption(icon = Icons.Default.Person, title = "Edit Profile", onClick = {})
+            ProfileOption(icon = Icons.Default.Settings, title = "Setting", onClick = {})
+            ProfileOption(icon = Icons.Default.Logout, title = "Logout", onClick = {
+                FirebaseAuth.getInstance().signOut()
+                navController.navigate(Routes.MAIN_SCREEN)
+            })
         }
     }
 }
 
 @Composable
-fun ProfileOption(icon: ImageVector, title: String) {
+fun ProfileOption(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit
+    ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -172,6 +184,7 @@ fun ProfileOption(icon: ImageVector, title: String) {
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
             .padding(12.dp)
+            .clickable { onClick() }
     ) {
         Icon(
             imageVector = icon,

@@ -1,9 +1,15 @@
 package com.example.mainproject.viewModel
 
+import androidx.annotation.OptIn
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.media3.common.util.UnstableApi
 import com.example.mainproject.Data.model.Account
 import com.example.mainproject.Data.model.Budget
 import com.example.mainproject.Data.model.Category
+import com.example.mainproject.Data.model.Expense
 import com.example.mainproject.Data.model.UserInfo
 import com.example.mainproject.Data.model.Transaction
 import com.google.firebase.auth.FirebaseAuth
@@ -14,8 +20,10 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.util.UUID
-//
+
 class TransactionViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance().reference
@@ -27,6 +35,7 @@ class TransactionViewModel : ViewModel() {
     private val _totalBalance = MutableStateFlow(0.0)
     private val _totalExpense = MutableStateFlow(0.0)
     private val _totalBudget = MutableStateFlow(0.0)
+    private var _expenses = mutableStateOf<Map<String, List<Expense>>>(emptyMap())
 
     val userInfo: StateFlow<UserInfo?> = _userInfo.asStateFlow()
     val accounts: StateFlow<Map<String, Account>> = _accounts.asStateFlow()
@@ -36,6 +45,7 @@ class TransactionViewModel : ViewModel() {
     val totalBalance: StateFlow<Double> = _totalBalance.asStateFlow()
     val totalExpense: StateFlow<Double> = _totalExpense.asStateFlow()
     val totalBudget: StateFlow<Double> = _totalBudget.asStateFlow()
+    val expenses: State<Map<String, List<Expense>>> = _expenses
 
     init {
         val userId = auth.currentUser?.uid
@@ -47,6 +57,7 @@ class TransactionViewModel : ViewModel() {
                         val user = snapshot.getValue(UserInfo::class.java)
                         _userInfo.value = user
                     }
+
                     override fun onCancelled(error: DatabaseError) {
                         // Xử lý lỗi
                     }
@@ -68,6 +79,7 @@ class TransactionViewModel : ViewModel() {
                         _accounts.value = newAccounts
                         _totalBalance.value = balance
                     }
+
                     override fun onCancelled(error: DatabaseError) {
                         // Xử lý lỗi
                     }
@@ -86,6 +98,7 @@ class TransactionViewModel : ViewModel() {
                         }
                         _categories.value = newCategories
                     }
+
                     override fun onCancelled(error: DatabaseError) {
                         // Xử lý lỗi
                     }
@@ -107,6 +120,7 @@ class TransactionViewModel : ViewModel() {
                         _budgets.value = newBudgets
                         _totalBudget.value = totalBudget
                     }
+
                     override fun onCancelled(error: DatabaseError) {
                         // Xử lý lỗi
                     }
@@ -115,6 +129,7 @@ class TransactionViewModel : ViewModel() {
             // Lấy Transactions và tính totalExpense
             database.child("users").child(userId).child("transactions")
                 .addValueEventListener(object : ValueEventListener {
+                    @OptIn(UnstableApi::class)
                     override fun onDataChange(snapshot: DataSnapshot) {
                         val newTransactions = mutableMapOf<String, Transaction>()
                         var expense = 0.0
@@ -130,13 +145,42 @@ class TransactionViewModel : ViewModel() {
                         _transactions.value = newTransactions
                         _totalExpense.value = expense
                     }
+
                     override fun onCancelled(error: DatabaseError) {
                         // Xử lý lỗi
                     }
                 })
+
+            // Lấy Expenses
+            loadExpenses(userId)
         } else {
             _userInfo.value = null // Đặt trạng thái mặc định nếu chưa đăng nhập
         }
+    }
+
+    private fun loadExpenses(userId: String) {
+        database.child("users").child(userId).child("categories")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newExpenses = mutableMapOf<String, List<Expense>>()
+                    snapshot.children.forEach { categorySnapshot ->
+                        val categoryId = categorySnapshot.key ?: return@forEach
+                        val expensesList = mutableListOf<Expense>()
+                        categorySnapshot.child("expenses").children.forEach { expenseSnapshot ->
+                            val expense = expenseSnapshot.getValue(Expense::class.java)
+                            if (expense != null) {
+                                expensesList.add(expense)
+                            }
+                        }
+                        newExpenses[categoryId] = expensesList
+                    }
+                    _expenses.value = newExpenses
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    // Xử lý lỗi
+                }
+            })
     }
 
     fun generateCategoryId(): String {
@@ -150,17 +194,45 @@ class TransactionViewModel : ViewModel() {
             .setValue(category.copy(id = categoryId))
     }
 
-    fun addBudget(budget: Budget) {
-        val userId = auth.currentUser?.uid ?: return
-        val budgetId = UUID.randomUUID().toString()
-        database.child("users").child(userId).child("budgets").child(budgetId)
-            .setValue(budget.copy(id = budgetId))
+    fun getExpenses(categoryId: String): List<Expense> {
+        return _expenses.value[categoryId] ?: emptyList()
     }
 
-    fun addTransaction(transaction: Transaction) {
-        val userId = auth.currentUser?.uid ?: return
-        val transactionId = UUID.randomUUID().toString()
-        database.child("users").child(userId).child("transactions").child(transactionId)
-            .setValue(transaction.copy(id = transactionId))
+    fun addExpenses(categoryId: String, expense: Expense) {
+        val currentList = _expenses.value[categoryId] ?: emptyList()
+        val updatedList = currentList + expense
+        _expenses.value = _expenses.value.toMutableMap().apply {
+            put(categoryId, updatedList)
+        }
+    }
+
+    fun addExpense(newExpense: Expense) {
+        viewModelScope.launch {
+            val updatedMap = _expenses.value.toMutableMap()
+            val currentList = updatedMap[newExpense.categoryId]?.toMutableList() ?: mutableListOf()
+            currentList.add(0, newExpense)
+            updatedMap[newExpense.categoryId] = currentList
+            _expenses.value = updatedMap
+
+            _totalExpense.update { it + newExpense.amount }
+
+            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
+            val dbRef = FirebaseDatabase.getInstance().reference
+            val expenseId = dbRef.child("users")
+                .child(userId)
+                .child("categories")
+                .child(newExpense.categoryId)
+                .child("expenses")
+                .push()
+                .key ?: return@launch
+
+            dbRef.child("users")
+                .child(userId)
+                .child("categories")
+                .child(newExpense.categoryId)
+                .child("expenses")
+                .child(expenseId)
+                .setValue(newExpense)
+        }
     }
 }

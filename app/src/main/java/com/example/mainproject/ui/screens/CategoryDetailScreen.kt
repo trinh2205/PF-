@@ -1,23 +1,22 @@
-package com.example.mainproject.ui.screens
+package com.example.mainproject.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,120 +25,82 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.mainproject.Data.model.Category
-import com.example.mainproject.R
-import com.example.mainproject.ui.components.*
 import com.example.mainproject.viewModel.TransactionViewModel
+import com.example.mainproject.ui.components.CustomHeader
+import com.example.mainproject.Data.model.Expense
+import com.example.mainproject.R
+import com.example.mainproject.ui.components.BottomNavigationBar
+import com.example.mainproject.ui.screens.categoryIcons
 import java.text.NumberFormat
-import java.util.*
-public  val categoryIcons = mapOf(
-    "Ăn uống" to Icons.Filled.Restaurant,
-    "Công nghệ" to Icons.Filled.Android,
-    "Văn học" to Icons.Filled.Book,
-    "Thời trang" to Icons.Filled.Checkroom,
-    "Đời sống" to Icons.Filled.Home,
-    "Giải trí" to Icons.Filled.PlayArrow,
-    "Khám phá" to Icons.Filled.Explore,
-    "Học tập" to Icons.Filled.School,
-    "Chăm sóc bản thân" to Icons.Filled.Spa
-)
-@Composable
-fun CategoriesScreen(navController: NavController, viewModel: TransactionViewModel = viewModel()) {
-    val textField1 = remember { mutableStateOf("") }
-    val textFieldDetails = remember { mutableStateOf("") }
-    var showDialog by remember { mutableStateOf(false) }
-    val selectedIcon = remember { mutableStateOf("Ăn uống") }
+import java.time.LocalDate
+import java.util.Locale
 
-    val categoriesMap by viewModel.categories.collectAsState()
-    val totalBalance by viewModel.totalBalance.collectAsState()
-    val totalExpense by viewModel.totalExpense.collectAsState()
-    val categoriesList = categoriesMap.values.toList()
-    var expenseAnalysisChecked by remember { mutableStateOf(true) }
+@Composable
+fun CategoryDetailScreen(
+    navController: NavController,
+    categoryId: String,
+    viewModel: TransactionViewModel = viewModel(),
+    onBack: () -> Unit,
+    onAddExpenseClick: () -> Unit
+) {
+    val expensesMap by viewModel.expenses // Directly use State
+    val categoryExpenses = expensesMap[categoryId] ?: emptyList()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
-
-
     val formatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
+    val totalBalance by viewModel.totalBalance.collectAsState()
+    val totalExpense by viewModel.totalExpense.collectAsState()
+    var expenseAnalysisChecked by remember { mutableStateOf(true) }
+    val categoriesMap by viewModel.categories.collectAsState()
+    val categoriesList = categoriesMap.values.toList()
+    val iconId = categoriesList.find { it.id == categoryId }?.iconId
+    val iconVector = categoryIcons[iconId] ?: Icons.Default.Help
+    var showDialog by remember { mutableStateOf(false) }
+    var newExpenseTitle by remember { mutableStateOf("") }
+    var newExpenseAmount by remember { mutableStateOf("") }
 
-    // Show dialog to add category
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Add Category") },
+            title = { Text("Add New Expense") },
             text = {
                 Column {
                     OutlinedTextField(
-                        value = textField1.value,
-                        onValueChange = { textField1.value = it },
+                        value = newExpenseTitle,
+                        onValueChange = { newExpenseTitle = it },
                         label = { Text("Title") },
-                        modifier = Modifier.fillMaxWidth()
+                        singleLine = true
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = textFieldDetails.value,
-                        onValueChange = { textFieldDetails.value = it },
-                        label = { Text("Details") },
-                        modifier = Modifier.fillMaxWidth()
+                        value = newExpenseAmount,
+                        onValueChange = { newExpenseAmount = it },
+                        label = { Text("Amount") },
+                        singleLine = true
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Select Icon:")
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .horizontalScroll(rememberScrollState())
-                            .fillMaxWidth()
-                    ) {
-                        categoryIcons.keys.forEach { iconKey ->
-                            val isSelected = selectedIcon.value == iconKey
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { selectedIcon.value = iconKey }
-                                    .background(if (isSelected) Color(0xFF4b23d4) else Color( 0xFF3498DB)) // All have blue background
-                                    .padding(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = categoryIcons[iconKey]!!,
-                                    contentDescription = iconKey,
-                                    tint = Color.White // icon màu trắng
-                                )
-                                Text(
-                                    text = iconKey,
-                                    fontSize = 12.sp,
-                                    color = Color.White // chữ màu trắng
-                                )
-                            }
-                        }
-                    }
-
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = {
-                        if (textField1.value.isNotBlank()) {
-                            val newCategory = Category(
-                                id = viewModel.generateCategoryId(),
-                                name = textField1.value,
-                                type = "Expense",
-                                date = java.time.LocalDateTime.now().toString(),
-                                iconId = selectedIcon.value,
-                                details = textFieldDetails.value
-                            )
-                            viewModel.addCategory(newCategory)
-                            showDialog = false
-                            textField1.value = ""
-                            textFieldDetails.value = ""
-                        }
+                Button(onClick = {
+                    val amount = newExpenseAmount.toDoubleOrNull() ?: 0.0
+                    if (newExpenseTitle.isNotBlank() && amount > 0) {
+                        val newExpense = Expense(
+                            title = newExpenseTitle,
+                            amount = amount,
+                            date = LocalDate.now().toString(),
+                            categoryId = categoryId
+                        )
+                        viewModel.addExpense(newExpense)
+                        newExpenseTitle = ""
+                        newExpenseAmount = ""
+                        showDialog = false
                     }
-                ) {
-                    Text("Save")
+                }) {
+                    Text("Add")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
+                OutlinedButton(onClick = { showDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -149,7 +110,7 @@ fun CategoriesScreen(navController: NavController, viewModel: TransactionViewMod
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
-                selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
+                selectedItem = currentRoute ?: com.example.mainproject.ui.components.NavigationItem.DefaultItems.first().route,
                 onItemClick = { item ->
                     navController.navigate(item.route) {
                         launchSingleTop = true
@@ -275,16 +236,19 @@ fun CategoriesScreen(navController: NavController, viewModel: TransactionViewMod
                     .background(Color(0xFFF4FFF9))
                     .padding(horizontal = 16.dp, vertical = 24.dp)
             ) {
-                if (categoriesList.isEmpty()) {
+                if (categoryExpenses.isEmpty()) {
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("No categories found.", fontSize = 16.sp, color = Color.Gray)
+                        Text("No expenses found.", fontSize = 16.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { showDialog = true }) {
-                            Text("Add Category")
+                        Button(
+                            onClick = { showDialog = true },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                        ) {
+                            Text("Add expense")
                         }
                     }
                 } else {
@@ -293,44 +257,63 @@ fun CategoriesScreen(navController: NavController, viewModel: TransactionViewMod
                             onClick = { showDialog = true },
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                         ) {
-                            Text("Add Category")
+                            Text("Add expense")
                         }
                         Spacer(modifier = Modifier.height(16.dp))
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(3),
-                            contentPadding = PaddingValues(all = 8.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        LazyColumn(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            items(categoriesList) { category ->
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Box(
+                            items(categoryExpenses) { expense ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    elevation = CardDefaults.cardElevation(4.dp)
+                                ) {
+                                    Row(
                                         modifier = Modifier
-                                            .size(100.dp)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .background(Color(0xFF3498DB)) // Nền xanh
-                                            .clickable {
-                                                navController.navigate("categoryDetail/${category.id}")
-                                            },
-                                        contentAlignment = Alignment.Center
+                                            .padding(16.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Icon(
-                                                imageVector = categoryIcons[category.iconId] ?: Icons.Default.Help,
-                                                contentDescription = category.name,
-                                                tint = Color.White, // Icon trắng
-                                                modifier = Modifier.size(32.dp)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(Color(0xFF3498DB)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = iconVector,
+                                                    contentDescription = expense.title,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column {
+                                                Text(expense.title, fontWeight = FontWeight.Bold)
+                                                Text(
+                                                    text = expense.date,
+                                                    fontSize = 12.sp,
+                                                    color = Color.Gray
+                                                )
+                                            }
+                                        }
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text(
+                                                text = "-${formatter.format(expense.amount)}",
+                                                color = Color(0xFFFF3B30),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
                                             )
-                                            Spacer(modifier = Modifier.height(4.dp))
-
                                         }
                                     }
-
-                                    Text(
-                                        text = category.name,
-                                        fontSize = 14.sp,
-                                        textAlign = TextAlign.Center
-                                    )
                                 }
                             }
                         }
