@@ -14,6 +14,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.example.mainproject.Data.model.ListCategories
 import com.example.mainproject.Data.repository.AuthRepository
+import com.example.mainproject.ui.CategoryDetailScreen
 import com.example.mainproject.ui.auth.AuthViewModel
 import com.example.mainproject.ui.screens.CategoriesScreen
 import com.example.mainproject.ui.screens.Home
@@ -41,7 +42,14 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         factory = AppViewModelFactory(auth) // Truyền auth nếu AppViewModel cần
     )
 
-    NavHost(navController = navController, startDestination = "splashScreen") {
+    //Luu trang thai dang nhap de chi dang nhap 1 lan trong tren thiet bi
+    var startDestination = "splashScreen"
+    if (FirebaseAuth.getInstance().currentUser != null)
+    {
+        startDestination = Routes.HOME
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
         composable("splashScreen") {
             SplashScreen(onNavigateToMain = {
                 navController.navigate(Routes.MAIN_SCREEN) {
@@ -52,6 +60,16 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.MAIN_SCREEN) {
             MainScreen(navController = navController)
         }
+        composable("categoryDetail/{categoryId}") { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
+            CategoryDetailScreen(
+                navController,
+                categoryId = categoryId,
+                onBack = { navController.popBackStack() },
+                onAddExpenseClick = { navController.navigate("addExpense/$categoryId") }
+            )
+        }
+
         composable(
             route = "signIn/{email}/{password}",
             arguments = listOf(
@@ -77,6 +95,8 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.CATEGORIES) {
             CategoriesScreen(navController = navController)
         }
+
+
         composable(route = Routes.PROFILE) {
             ProfileScreen(navController = navController)
         }

@@ -31,7 +31,6 @@ import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.ArrowBack
@@ -64,7 +63,6 @@ import androidx.navigation.NavController
 
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
-import com.example.mainproject.ui.components.NavigationItem
 
 
 @Preview(showBackground = true)
@@ -93,7 +91,7 @@ fun Editprofile() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
                 Text(
                     text = "Profile",
                     fontWeight = FontWeight.Bold,
@@ -138,15 +136,11 @@ fun Editprofile() {
                 .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                 .background(Color(0xFFEFFFF6))
         ) {
-//            BottomNavigationBar(
-//                selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
-//                onItemClick = { item ->
-//                    navController.navigate(item.route) {
-//                        launchSingleTop = true
-//                        restoreState = true
-//                    }
-//                }
-//            )
+            BottomNavigationBar(
+                selectedItem = TODO(),
+                onItemClick = TODO(),
+                items = TODO()
+            )
         }
     }
 }
@@ -313,3 +307,5 @@ fun EditProfileBackgroundBar(modifier: Modifier = Modifier) {
         }
     }
 }
+
+

@@ -101,6 +101,8 @@ fun ProfileScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 140.dp) // ✅ Đẩy xuống dưới phần xanh
+
+            ,navController = navController
         )
 
         // Avatar
@@ -144,33 +146,33 @@ fun ProfileScreen(navController: NavController) {
 }
 
 
-@Composable
-fun ProfileBackgroundBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)) //BO GÓC TRÊN
-            .background(Color(0xFFF4FFF9)) // màu nền trắng ngà
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 70.dp), // chừa chỗ phía trên cho avatar
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Tên và ID
-            Text("Châu Trinh", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text("ID: 22052005", fontSize = 14.sp, color = Color.Gray)
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Danh sách chức năng
-            ProfileOption(icon = Icons.Default.Person, title = "Edit Profile")
-            ProfileOption(icon = Icons.Default.Settings, title = "Setting")
-            ProfileOption(icon = Icons.Default.Logout, title = "Logout")
-        }
-    }
-}
+//@Composable
+//fun ProfileBackgroundBar(modifier: Modifier = Modifier) {
+//    Box(
+//        modifier = modifier
+//            .fillMaxSize()
+//            .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)) //BO GÓC TRÊN
+//            .background(Color(0xFFF4FFF9)) // màu nền trắng ngà
+//    ) {
+//        Column(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .verticalScroll(rememberScrollState())
+//                .padding(horizontal = 16.dp, vertical = 70.dp), // chừa chỗ phía trên cho avatar
+//            horizontalAlignment = Alignment.CenterHorizontally
+//        ) {
+//            // Tên và ID
+//            Text("Châu Trinh", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+//            Text("ID: 22052005", fontSize = 14.sp, color = Color.Gray)
+//            Spacer(modifier = Modifier.height(24.dp))
+//
+//            // Danh sách chức năng
+//            ProfileOption(icon = Icons.Default.Person, title = "Edit Profile")
+//            ProfileOption(icon = Icons.Default.Settings, title = "Setting")
+//            ProfileOption(icon = Icons.Default.Logout, title = "Logout")
+//        }
+//    }
+//}
 
 @Composable
 fun ProfileOption(icon: ImageVector, title: String) {
