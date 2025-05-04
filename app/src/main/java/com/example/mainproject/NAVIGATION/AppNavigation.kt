@@ -21,7 +21,9 @@ import com.example.mainproject.ui.screens.Home
 import com.example.mainproject.ui.screens.MainScreen
 import com.example.mainproject.ui.screens.NotificationItem
 import com.example.mainproject.ui.screens.NotificationScreen
+import com.example.mainproject.ui.screens.NotificationSettingsScreen
 import com.example.mainproject.ui.screens.ProfileScreen
+import com.example.mainproject.ui.screens.SettingsScreen
 import com.example.mainproject.ui.screens.SignIn
 import com.example.mainproject.ui.screens.SignUp
 import com.example.mainproject.ui.screens.SplashScreen
@@ -99,6 +101,12 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         }
         composable(route = Routes.NOTIFICATION) {
             NotificationScreen(navController = navController, appViewModel = appViewModel)
+        }
+        composable(Routes.SETTINGS) {
+            SettingsScreen(navController)
+        }
+        composable(Routes.NOTIFICATION_SETTINGS) {
+            NotificationSettingsScreen(navController)
         }
     }
 }

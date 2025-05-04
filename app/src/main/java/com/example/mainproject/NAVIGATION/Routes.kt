@@ -15,6 +15,8 @@ object Routes {
     const val TRANSACTION = "transaction"
     const val ITEM_SCREEN = "itemScreen/{listCategoryId}/{listCategoryName}"
     const val NOTIFICATION = "notification"
+    const val SETTINGS = "settings"
+    const val NOTIFICATION_SETTINGS = "notification_settings"
 
     // ... các route khác
 }
