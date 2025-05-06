@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
@@ -16,26 +15,17 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mainproject.R // Import R của ứng dụng bạn
-import com.example.mainproject.data.model.Notification
-import com.example.mainproject.data.repository.NotificationRepository
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
-import androidx.lifecycle.viewModelScope
+import com.example.mainproject.Data.model.Notification
+import com.example.mainproject.Data.repository.NotificationRepository
 import com.example.mainproject.viewModel.AppViewModel
 import com.example.mainproject.viewModel.NotificationViewModel
 import com.example.mainproject.viewModel.NotificationViewModelFactory
@@ -83,12 +73,12 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            items(transactionNotifications) { notification -> // Đảm bảo lambda nhận đúng kiểu Notification
-                NotificationItem(notification = notification) // Sửa lỗi 3 (ngầm)
+//            items(transactionNotifications) { notification -> // Đảm bảo lambda nhận đúng kiểu Notification
+//                NotificationItem(notification = notification) // Sửa lỗi 3 (ngầm)
             }
         }
     }
-}
+
 
 @Composable
 fun NotificationItem(notification: Notification) {
