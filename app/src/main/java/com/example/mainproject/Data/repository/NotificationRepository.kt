@@ -1,6 +1,7 @@
-package com.example.mainproject.data.repository
+package com.example.mainproject.Data.repository
 
-import com.example.mainproject.data.model.Notification
+import android.app.Notification
+import com.example.mainproject.Data.model.Notification
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
