@@ -15,13 +15,13 @@ import androidx.navigation.navArgument
 import com.example.mainproject.Data.model.ListCategories
 import com.example.mainproject.Data.repository.AuthRepository
 import com.example.mainproject.ui.auth.AuthViewModel
+import com.example.mainproject.ui.screens.AnalysisScreen
 import com.example.mainproject.ui.screens.CategoriesScreen
 import com.example.mainproject.ui.screens.Home
 //import com.example.mainproject.ui.screens.ItemScreen
 import com.example.mainproject.ui.screens.MainScreen
 import com.example.mainproject.ui.screens.NotificationItem
 import com.example.mainproject.ui.screens.NotificationScreen
-import com.example.mainproject.ui.screens.ProfileScreen
 import com.example.mainproject.ui.screens.SignIn
 import com.example.mainproject.ui.screens.SignUp
 import com.example.mainproject.ui.screens.SplashScreen
@@ -77,9 +77,6 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.CATEGORIES) {
             CategoriesScreen(navController = navController)
         }
-        composable(route = Routes.PROFILE) {
-            ProfileScreen(navController = navController)
-        }
         composable(
             route = "itemScreen/{listCategoryId}/{listCategoryName}",
             arguments = listOf(
@@ -99,6 +96,9 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         }
         composable(route = Routes.NOTIFICATION) {
             NotificationScreen(navController = navController, appViewModel = appViewModel)
+        }
+        composable(route = Routes.ANALYTICS) {
+            AnalysisScreen(navController = navController)
         }
     }
 }

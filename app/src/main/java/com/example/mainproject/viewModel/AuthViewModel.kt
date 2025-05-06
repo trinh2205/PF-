@@ -1,4 +1,4 @@
-//package com.example.mainproject.viewModel
+package com.example.mainproject.viewModel//package com.example.mainproject.viewModel
 //
 //import androidx.lifecycle.ViewModel
 //import com.example.mainproject.Data.repository.AuthRepository

@@ -30,6 +30,17 @@ import com.example.mainproject.ui.components.*
 import com.example.mainproject.viewModel.TransactionViewModel
 import java.text.NumberFormat
 import java.util.*
+public  val categoryIcons = mapOf(
+    "Ăn uống" to Icons.Filled.Restaurant,
+    "Công nghệ" to Icons.Filled.Android,
+    "Văn học" to Icons.Filled.Book,
+    "Thời trang" to Icons.Filled.Checkroom,
+    "Đời sống" to Icons.Filled.Home,
+    "Giải trí" to Icons.Filled.PlayArrow,
+    "Khám phá" to Icons.Filled.Explore,
+    "Học tập" to Icons.Filled.School,
+    "Chăm sóc bản thân" to Icons.Filled.Spa
+)
 
 @Composable
 fun CategoriesScreen(navController: NavController, viewModel: TransactionViewModel = viewModel()) {
@@ -39,18 +50,6 @@ fun CategoriesScreen(navController: NavController, viewModel: TransactionViewMod
     val totalExpense by viewModel.totalExpense.collectAsState()
     val categoriesList = categoriesMap.values.toList()
     var expenseAnalysisChecked by remember { mutableStateOf(true) }
-
-    val categoryIcons = mapOf(
-        "Ăn uống" to Icons.Filled.Restaurant,
-        "Công nghệ" to Icons.Filled.Android,
-        "Văn học" to Icons.Filled.Book,
-        "Thời trang" to Icons.Filled.Checkroom,
-        "Đời sống" to Icons.Filled.Home,
-        "Giải trí" to Icons.Filled.PlayArrow,
-        "Khám phá" to Icons.Filled.Explore,
-        "Học tập" to Icons.Filled.School,
-        "Chăm sóc bản thân" to Icons.Filled.Spa
-    )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route

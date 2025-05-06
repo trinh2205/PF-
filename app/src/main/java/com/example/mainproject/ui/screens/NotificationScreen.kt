@@ -28,6 +28,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mainproject.R // Import R của ứng dụng bạn
+import com.example.mainproject.data.model.Notification
+import com.example.mainproject.data.repository.NotificationRepository
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +37,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import androidx.lifecycle.viewModelScope
 import com.example.mainproject.viewModel.AppViewModel
+import com.example.mainproject.viewModel.NotificationViewModel
+import com.example.mainproject.viewModel.NotificationViewModelFactory
 
 @Composable
 fun NotificationScreen(navController: NavController, appViewModel: AppViewModel) {
