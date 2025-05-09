@@ -1,4 +1,4 @@
-package com.example.mainproject.Data.module
+package com.example.mainproject.data.module
 
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase

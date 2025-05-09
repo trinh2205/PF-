@@ -1,4 +1,4 @@
-package com.example.mainproject.Data.model
+package com.example.mainproject.data.model
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Money

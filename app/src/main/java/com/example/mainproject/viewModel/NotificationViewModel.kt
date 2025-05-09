@@ -1,6 +1,7 @@
 package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mainproject.data.model.Notification
 import com.example.mainproject.data.repository.NotificationRepository
@@ -11,24 +12,44 @@ import kotlinx.coroutines.launch
 
 class NotificationViewModel(
     private val notificationRepository: NotificationRepository,
-    // Cách bạn lấy userId mà không dùng Hilt
-    // Ví dụ: có thể truyền userId khi tạo ViewModel hoặc lấy từ một StateFlow/LiveData toàn cục
-    private val userIdProvider: () -> String = { "userUid1" } // Placeholder
+    private val userId: String?
 ) : ViewModel() {
 
-    private val _transactionNotifications = MutableStateFlow<List<Notification>>(emptyList())
-    val transactionNotifications: StateFlow<List<Notification>> = _transactionNotifications
+    private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
+    val notifications: StateFlow<List<Notification>> = _notifications
 
     init {
-        fetchTransactionNotifications(userIdProvider())
+        userId?.let { fetchNotifications(it) }
     }
 
-    private fun fetchTransactionNotifications(userId: String) {
+    private fun fetchNotifications(userId: String) {
         viewModelScope.launch {
-            notificationRepository.getTransactionNotifications(userId)
-                .collectLatest { notifications ->
-                    _transactionNotifications.value = notifications
+            notificationRepository.getNotificationsForUser(userId)
+                .collectLatest { fetchedNotifications ->
+                    _notifications.value = fetchedNotifications
                 }
+        }
+    }
+
+    fun markNotificationAsRead(notification: Notification) {
+        userId?.let {
+            viewModelScope.launch {
+                notificationRepository.markNotificationAsRead(notification.notificationId, it)
+            }
+        }
+    }
+
+    companion object {
+        fun provideFactory(
+            notificationRepository: NotificationRepository,
+            userId: String?
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(NotificationViewModel::class.java)) {
+                    return NotificationViewModel(notificationRepository, userId) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
         }
     }
 }

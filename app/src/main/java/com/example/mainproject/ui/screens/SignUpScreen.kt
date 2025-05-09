@@ -23,8 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.mainproject.R
-import com.example.mainproject.ui.auth.AuthViewModel
-import com.example.mainproject.ui.auth.SignUpState
+import com.example.mainproject.viewModel.AuthViewModel
 import kotlinx.coroutines.launch
 
 

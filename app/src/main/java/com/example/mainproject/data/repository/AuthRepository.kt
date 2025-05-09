@@ -1,7 +1,7 @@
-package com.example.mainproject.Data.repository
+package com.example.mainproject.data.repository
 
-import com.example.mainproject.Data.model.Account
-import com.example.mainproject.Data.model.UserInfo
+import com.example.mainproject.data.model.Account
+import com.example.mainproject.data.model.UserInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import java.time.LocalDateTime

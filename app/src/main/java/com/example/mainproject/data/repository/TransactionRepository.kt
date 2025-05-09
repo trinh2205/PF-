@@ -1,6 +1,6 @@
-package com.example.mainproject.Data.repository
+package com.example.mainproject.data.repository
 
-import com.example.mainproject.Data.model.Category
+import com.example.mainproject.data.model.Category
 
 interface TransactionRepository {
     suspend fun getAllTransactions(): List<Category>

@@ -11,7 +11,7 @@ class NotificationViewModelFactory(
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(NotificationViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return NotificationViewModel(notificationRepository, userIdProvider) as T
+            return NotificationViewModel(notificationRepository, userIdProvider()) as T // Gọi function để lấy String
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

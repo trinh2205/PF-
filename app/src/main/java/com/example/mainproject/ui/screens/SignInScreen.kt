@@ -34,8 +34,8 @@ import androidx.navigation.NavController
 import com.example.mainproject.NAVIGATION.Routes
 //import com.example.mainproject.Navigation.Routes
 import com.example.mainproject.R
-import com.example.mainproject.ui.auth.AuthViewModel
 import com.example.mainproject.viewModel.AppViewModel
+import com.example.mainproject.viewModel.AuthViewModel
 import dagger.hilt.android.UnstableApi
 import kotlinx.coroutines.launch
 
@@ -43,12 +43,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun SignIn(
     navController: NavController,
-    viewModel: AuthViewModel,
-    emailFromSignUp: String? = null,
-    passwordFromSignUp: String? = null
+    viewModel: AuthViewModel
 ) {
-    var email by remember { mutableStateOf(emailFromSignUp ?: "") }
-    var password by remember { mutableStateOf(passwordFromSignUp ?: "") }
+    var email by remember { mutableStateOf("") } // Giá trị mặc định rỗng
+    var password by remember { mutableStateOf("") } // Giá trị mặc định rỗng
     var passwordVisible by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val state by viewModel.authState.collectAsState()

@@ -4,28 +4,39 @@ import androidx.annotation.OptIn
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 
-import com.example.mainproject.Data.model.Account
-import com.example.mainproject.Data.model.Budget
-import com.example.mainproject.Data.model.Category
-import com.example.mainproject.Data.model.Expense
-import com.example.mainproject.Data.model.UserInfo
-import com.example.mainproject.Data.model.Transaction
+import com.example.mainproject.data.model.Account
+import com.example.mainproject.data.model.Budget
+import com.example.mainproject.data.model.Category
+import com.example.mainproject.data.model.Expense
+import com.example.mainproject.data.model.Notification
+import com.example.mainproject.data.model.NotificationType
+import com.example.mainproject.data.model.UserInfo
+import com.example.mainproject.data.model.Transaction
+import com.example.mainproject.data.model.TransactionBE
+import com.example.mainproject.data.repository.NotificationRepository
+import com.example.mainproject.data.repository.TransactionRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import dagger.hilt.android.UnstableApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 //
-class TransactionViewModel : ViewModel() {
+class TransactionViewModel(
+    private val notificationRepository: NotificationRepository,
+    private val userId: String?
+) : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance().reference
     private val _userInfo = MutableStateFlow<UserInfo?>(null)
@@ -33,6 +44,8 @@ class TransactionViewModel : ViewModel() {
     private val _categories = MutableStateFlow<Map<String, Category>>(emptyMap())
     private val _budgets = MutableStateFlow<Map<String, Budget>>(emptyMap())
     private val _transactions = MutableStateFlow<Map<String, Transaction>>(emptyMap())
+    private val _transactionsBE = MutableStateFlow<Map<String, TransactionBE>>(emptyMap())
+    val transactionsBE: StateFlow<Map<String, TransactionBE>> = _transactionsBE.asStateFlow()
     private val _totalBalance = MutableStateFlow(0.0)
     private val _totalExpense = MutableStateFlow(0.0)
     private val _totalBudget = MutableStateFlow(0.0)
@@ -128,7 +141,7 @@ class TransactionViewModel : ViewModel() {
                 })
 
             // Lấy Transactions và tính totalExpense
-            database.child("users").child(userId).child("transactions")
+            database.child("users").child(userId).child("transactionsBE")
                 .addValueEventListener(object : ValueEventListener {
                     @OptIn(UnstableApi::class)
                     override fun onDataChange(snapshot: DataSnapshot) {
@@ -199,8 +212,6 @@ class TransactionViewModel : ViewModel() {
         return _expenses.value[categoryId] ?: emptyList()
     }
 
-
-
     fun addExpense(newExpense: Expense) {
         viewModelScope.launch {
             val updatedMap = _expenses.value.toMutableMap()
@@ -228,6 +239,63 @@ class TransactionViewModel : ViewModel() {
                 .child("expenses")
                 .child(expenseId)
                 .setValue(newExpense)
+                .addOnSuccessListener {
+                    // Sau khi thêm expense thành công, tạo và lưu notification
+                    sendNewExpenseNotification(userId, newExpense)
+                }
         }
     }
+
+    fun getCategoryNameById(categoryId: String?): String? {
+        return _categories.value[categoryId]?.name
+    }
+
+    private fun sendNewExpenseNotification(userId: String, expense: Expense) {
+        val categoryName = getCategoryNameById(expense.categoryId) ?: "Không xác định"
+        val body = "Bạn vừa chi tiêu ${expense.amount} cho '${expense.title}' ($categoryName)."
+
+        val notification = Notification(
+            userId = userId,
+            title = "New Expense",
+            body = body,
+            type = NotificationType.TRANSACTION.name,
+            data = mapOf("expenseId" to expense.id) // Giả sử Expense có ID
+        )
+        viewModelScope.launch {
+            notificationRepository.saveNotification(notification)
+        }
+    }
+
+    // Bên trong class TransactionViewModel
+    companion object {
+        fun provideFactory(
+            notificationRepository: NotificationRepository,
+//            transactionRepository: TransactionRepository? = null,
+            userId: String? = null
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                if (modelClass.isAssignableFrom(TransactionViewModel::class.java)) {
+                    return TransactionViewModel(notificationRepository, userId) as T
+                }
+                throw IllegalArgumentException("Unknown ViewModel class")
+            }
+        }
+    }
+
+    fun getTransactionsByCategoryName(targetCategoryName: String?): Flow<List<TransactionBE>> {
+        return _transactionsBE.map { transactionsMap ->
+            transactionsMap.values.filter { transaction ->
+                val categoryName = getCategoryNameById(transaction.categoryId)
+                categoryName == targetCategoryName
+            }
+        }
+    }
+
+    // Data class để kết hợp Transaction với categoryName
+    data class TransactionWithCategoryName(
+        val transaction: TransactionBE,
+        val categoryName: String?
+    )
+
 }

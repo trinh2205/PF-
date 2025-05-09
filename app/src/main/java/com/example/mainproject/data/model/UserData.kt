@@ -1,4 +1,4 @@
-package com.example.mainproject.Data.model
+package com.example.mainproject.data.model
 
 data class UserData(
     val profile: UserInfo? = null,

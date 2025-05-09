@@ -7,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,14 +45,17 @@ fun CustomHeader(
     title: String,
     onBackClick: () -> Unit,
     hasNotifications: StateFlow<Boolean>? = null, // Sử dụng StateFlow để theo dõi thông báo động
-    onNotificationClick: () -> Unit = {}
+    onNotificationClick: () -> Unit = {},
+    backgroundColor: Color,
+    contentColor: Color
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 24.dp),
+            .padding(top = 24.dp)
+            .background(color = backgroundColor),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         // Nút Quay lại
         IconButton(onClick = onBackClick) {
@@ -67,7 +71,7 @@ fun CustomHeader(
         Text(
             text = title,
             fontSize = 20.sp,
-            color = Color.Black
+            color = contentColor
         )
 
         // Nút Thông báo

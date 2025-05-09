@@ -1,12 +1,9 @@
 package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-import com.example.mainproject.Data.model.UserInfo
-import java.time.LocalDateTime
+import com.example.mainproject.data.model.UserInfo
 
 class UserViewModel : ViewModel() {
     private val _currentUser = MutableStateFlow<UserInfo?>(null)

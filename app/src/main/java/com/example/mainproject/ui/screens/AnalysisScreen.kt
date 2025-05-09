@@ -3,7 +3,6 @@ package com.example.mainproject.ui.screens
 //noinspection SuspiciousImport
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Checkbox
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,18 +41,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.mainproject.FireBase.FirebaseAnalysisService
+import com.example.mainproject.data.repository.AnalysisRepository
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.CalendarBar
 import com.example.mainproject.ui.components.NavigationItem
+import com.example.mainproject.ui.viewmodel.AnalysisViewModel
+import com.example.mainproject.viewModel.AnalysisViewModelFactory
+import com.example.mainproject.viewModel.AppViewModel
+import com.example.mainproject.viewModel.AppViewModelFactory
+import java.text.NumberFormat
+import java.util.Locale
+
+public val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
 
 @Composable
 fun AnalysisScreen(navController: NavController) {
@@ -74,158 +85,195 @@ fun AnalysisScreen(navController: NavController) {
     }
 }
 @Composable
-fun AnalysisContent(onCalendarClick: () -> Unit, navController: NavController, currentRoute: String?) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFFFFF))
-    ) {
+fun AnalysisContent(
+    onCalendarClick: () -> Unit,
+    navController: NavController,
+    firebaseAnalysisService: FirebaseAnalysisService = remember { FirebaseAnalysisService() },
+    analysisRepository: AnalysisRepository = remember(firebaseAnalysisService) { AnalysisRepository(firebaseAnalysisService) },
+    viewModel: AnalysisViewModel = viewModel(factory = AnalysisViewModelFactory(analysisRepository)),
+    currentRoute: String?,
+    AppViewModel: AppViewModel = viewModel(factory = AppViewModelFactory(auth))
+) {
+    val totalBalance by AppViewModel.totalBalance.collectAsState()
+    val totalExpense by AppViewModel.totalExpense.collectAsState()
+    val expenseBudgetProgress by viewModel.expenseBudgetProgress.collectAsState(initial = null)
+    val expenseBudgetTotal by viewModel.expenseBudgetTotal.collectAsState(initial = "Loading...")
+    val formatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
+    Scaffold(
+        bottomBar = {
+            BottomNavigationBar(
+                selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
+                onItemClick = { item ->
+                    navController.navigate(item.route) {
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(Color(0xFF3498DB))
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .background(Color(0xFFFFFFFF))
+                .padding(paddingValues)
         ) {
-            Spacer(modifier = Modifier.height(30.dp))
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .weight(1f)
+                    .background(Color(0xFF3498DB))
+                    .verticalScroll(rememberScrollState())
             ) {
-                Icon(
-                    Icons.Default.ArrowBack,
-                    contentDescription = null,
-                    tint = Color.White,
-                )
-                Text(
-                    text = "Analysis",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.White
-                )
-                Icon(
-                    Icons.Default.Notifications,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.clickable { onCalendarClick() } // Bấm vào icon Calendar
-                )
-            }
-
-            Spacer(modifier = Modifier.height(30.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 50.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(horizontalAlignment = Alignment.Start) {
-                    Text("Total Balance", color = Color.Black.copy(alpha = 0.7f), fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(30.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.White,
+                    )
                     Text(
-                        text = "$7,783.00",
+                        text = "Analysis",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
+                        fontSize = 18.sp,
                         color = Color.White
                     )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .width(1.dp)
-                        .height(40.dp)
-                        .background(Color.White)
-                )
-
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Total Expense", color = Color.Black.copy(alpha = 0.7f), fontSize = 14.sp)
-                    Text(
-                        text = "-$1,187.40",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
-                        color = Color(0xFFFF3B30)
+                    Icon(
+                        Icons.Default.Notifications,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.clickable { onCalendarClick() } // Bấm vào icon Calendar
                     )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(30.dp))
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(20.dp)
-                    .padding(horizontal = 40.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xFFE6FFF9))
-            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 50.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text("Total Balance", color = Color.Black.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Text(
+                            text = formatter.format(totalBalance),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            color = Color.White
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .width(1.dp)
+                            .height(40.dp)
+                            .background(Color.White)
+                    )
+
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Total Expense", color = Color.Black.copy(alpha = 0.7f), fontSize = 14.sp)
+                        Text(
+                            text = formatter.format(totalExpense),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp,
+                            color = Color(0xFFFF3B30)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(0.3f)
+                        .fillMaxWidth()
+                        .height(20.dp)
+                        .padding(horizontal = 40.dp)
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color.Black)
+                        .background(Color(0xFFE6FFF9))
                 ) {
+                    BudgetProgressBar(
+                        progress = expenseBudgetProgress
+                    )
                     Text(
-                        "30%",
-                        color = Color.White,
+                        text = expenseBudgetTotal.toString(),
+                        color = Color.Black,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        modifier = Modifier.align(Alignment.Center)
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 16.dp)
                     )
                 }
 
+                Spacer(modifier = Modifier.height(5.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 40.dp),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = true,
+                        onCheckedChange = {}
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "30% Of Your Expenses, Looks Good.",
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Box(modifier = Modifier.weight(1f)) {
+                    AnalysisBackgroundBar(
+                        onCalendarClick = onCalendarClick, // Truyền sự kiện click tiếp xuống
+                        viewModel = viewModel, // THÊM
+                    )
+                }
+
+                Box(modifier = Modifier.background(Color.White)) {
+
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BudgetProgressBar(progress: Float?) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(20.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color(0xFFE6FFF9))
+    ) {
+        progress?.let {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(it)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color.Black)
+            ) {
                 Text(
-                    "$20,000.00",
-                    color = Color.Black,
+                    text = "${(it * 100).toInt()}%",
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 16.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp),
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Checkbox(
-                    checked = true,
-                    onCheckedChange = {}
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    "30% Of Your Expenses, Looks Good.",
-                    color = Color.Black,
-                    fontSize = 14.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(modifier = Modifier.weight(1f)) {
-                AnalysissBackgroundBar(
-                    onCalendarClick = onCalendarClick // Truyền sự kiện click tiếp xuống
-                )
-            }
-
-            Box(modifier = Modifier.background(Color.White)) {
-                BottomNavigationBar(
-                    selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
-                    onItemClick = { item ->
-                        navController.navigate(item.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                    modifier = Modifier.align(Alignment.Center)
                 )
             }
         }
@@ -233,9 +281,11 @@ fun AnalysisContent(onCalendarClick: () -> Unit, navController: NavController, c
 }
 
 @Composable
-fun AnalysissBackgroundBar(onCalendarClick: () -> Unit) {
-    val tabs = listOf("Daily", "Weekly", "Monthly", "Year")
+fun AnalysisBackgroundBar(onCalendarClick: () -> Unit, viewModel: AnalysisViewModel) {
+    val tabs = remember { listOf("Daily", "Weekly", "Monthly", "Year") }
     var selectedTab by remember { mutableStateOf("Year") }
+    val currentChartData by viewModel.chartData.collectAsState(initial = Pair(emptyList(), emptyList()))
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -248,302 +298,293 @@ fun AnalysissBackgroundBar(onCalendarClick: () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
-            // Tab switcher
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFE6FFF9))
-                    .padding(6.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-
-
-                tabs.forEach { tab ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(if (selectedTab == tab) Color(0xFF3498DB) else Color.Transparent)
-                            .clickable { selectedTab = tab }
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = tab,
-                            color = if (selectedTab == tab) Color.White else Color.Black,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
+            TabSwitcher(tabs = tabs, selectedTab = selectedTab) { selectedTab = it }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Income & Expense chart section
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFD5F3E9))
-                    .padding(16.dp)
-            ) {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Income & Expenses",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = Color(0xFF052224)
-                        )
-                        Row {
-                            IconButton(onClick = { }) {
-                                Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF052224))
-                            }
-                            IconButton(onClick = { onCalendarClick() }) {
-                                Icon(Icons.Default.DateRange, contentDescription = "Calendar", tint = Color(0xFF052224))
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(160.dp)
-                            .background(Color.White, shape = RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BarChart(selectedTab = selectedTab)
-
-                    }
-                }
-            }
+            IncomeExpenseChartSection(
+                selectedTab = selectedTab,
+                onCalendarClick = onCalendarClick,
+                chartData = currentChartData
+            )
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Income & Expense Summary
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CallReceived, contentDescription = null, tint = Color(0xFF00B894))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Income", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("$4,120.00", color = Color.Black, fontSize = 16.sp)
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Default.CallMade, contentDescription = null, tint = Color(0xFF0984E3))
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Expense", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("$1,187.40", color = Color(0xFF0984E3), fontSize = 16.sp)
-                }
-            }
+            IncomeExpenseSummaryRow(viewModel = viewModel)
 
             Spacer(modifier = Modifier.height(16.dp))
-            // My Target
-            Column(
+
+            MyTargetsSection(viewModel = viewModel)
+        }
+    }
+}
+
+@Composable
+fun TabSwitcher(tabs: List<String>, selectedTab: String, onTabSelected: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFFE6FFF9))
+            .padding(6.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        tabs.forEach { tab ->
+            Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (selectedTab == tab) Color(0xFF3498DB) else Color.Transparent)
+                    .clickable { onTabSelected(tab) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = "My Targets",
+                    text = tab,
+                    color = if (selectedTab == tab) Color.White else Color.Black,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color(0xFF052224)
+                    fontSize = 14.sp
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Target Item - ví dụ một mục tiêu, có thể lặp nếu cần
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFFFFFFF))
-                        .padding(16.dp)
-                ) {
-                    Column {
-                        Text("🎯 Save for Vacation", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Progress bar
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(10.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(Color(0xFFE0E0E0))
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(0.6f) // 60% hoàn thành
-                                    .fillMaxHeight()
-                                    .background(Color(0xFF3498DB))
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text("60% completed", fontSize = 12.sp, color = Color.Gray)
-                    }
-                }
             }
         }
     }
 }
+
 @Composable
-fun BarChart(selectedTab: String) {
-    val dailyData1 = listOf(3000f, 1000f, 2000f, 500f, 4000f, 700f, 1500f)
-    val dailyData2 = listOf(6000f, 200f, 5000f, 3500f, 10000f, 1000f, 6500f)
+fun IncomeExpenseChartSection(
+    selectedTab: String,
+    onCalendarClick: () -> Unit,
+    chartData: Pair<List<Double>, List<Double>>
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color(0xFFD5F3E9))
+            .padding(16.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Income & Expenses",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = Color(0xFF052224)
+                )
+                Row {
+                    IconButton(onClick = {}) {
+                        Icon(Icons.Default.Search, contentDescription = "Search", tint = Color(0xFF052224))
+                    }
+                    IconButton(onClick = onCalendarClick) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Calendar", tint = Color(0xFF052224))
+                    }
+                }
+            }
 
-    val weeklyData1 = listOf(6000f, 3000f, 4000f, 2000f)
-    val weeklyData2 = listOf(10000f, 5000f, 8000f, 7000f)
+            Spacer(modifier = Modifier.height(12.dp))
 
-    val monthlyData1 = listOf(8000f, 10000f, 6000f, 5000f, 7000f, 9000f, 11000f)
-    val monthlyData2 = listOf(12000f, 8000f, 7000f, 9500f, 10000f, 8500f, 13000f)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .background(Color.White, shape = RoundedCornerShape(16.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                BarChart(selectedTab = selectedTab, chartData = chartData)
+            }
+        }
+    }
+}
 
-    val yearlyData1 = listOf(60000f, 80000f, 90000f, 70000f, 100000f, 95000f)
-    val yearlyData2 = listOf(70000f, 85000f, 95000f, 80000f, 110000f, 97000f)
+@Composable
+fun BarChart(selectedTab: String, chartData: Pair<List<Double>, List<Double>>) {
+    val incomeData = chartData.first
+    val expenseData = chartData.second
 
-    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-    val weeks = listOf("1st", "2nd", "3rd", "4th Week")
-    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul")
-    val years = listOf("2020", "2021", "2022", "2023", "2024", "2025")
-
-    val chartData1 = when (selectedTab) {
-        "Weekly" -> weeklyData1
-        "Monthly" -> monthlyData1
-        "Year" -> yearlyData1
-        else -> dailyData1
+    val labels = remember(selectedTab, incomeData.size, expenseData.size) {
+        when (selectedTab) {
+            "Weekly" -> (1..incomeData.size.coerceAtLeast(expenseData.size)).map { "W$it" }
+            "Monthly" -> getMonthLabels(incomeData.size.coerceAtLeast(expenseData.size))
+            "Year" -> (2020 until 2020 + incomeData.size.coerceAtLeast(expenseData.size)).map { it.toString().takeLast(2) }
+            else -> (1..incomeData.size.coerceAtLeast(expenseData.size)).map { "D$it" } // Default to Daily-like labels
+        }
     }
 
-    val chartData2 = when (selectedTab) {
-        "Weekly" -> weeklyData2
-        "Monthly" -> monthlyData2
-        "Year" -> yearlyData2
-        else -> dailyData2
-    }
+    val combinedData = incomeData.zip(expenseData) { income, expense -> maxOf(income, expense) }
+    val maxValue = combinedData.maxOrNull()?.coerceAtLeast(1.0) ?: 1.0
 
-    val labels = when (selectedTab) {
-        "Weekly" -> weeks
-        "Monthly" -> months
-        "Year" -> years
-        else -> days
-    }
-
-    val maxValue = (chartData1 + chartData2).maxOrNull()?.coerceAtLeast(1f) ?: 1f
-
-    val barColors = listOf(Color(0xFF00C2A8), Color(0xFF007BFF))
+    val barColors = listOf(Color(0xFF00C2A8), Color(0xFF007BFF)) // Income (Green), Expense (Blue)
     val chartHeight = 120.dp
-    val barWidth = 6.dp
-    val spaceBetweenBars = 4.dp
-    val barCornerRadius = 50.dp
+    val barWidth = 12.dp
+    val spaceBetweenBars = 8.dp
+    val barCornerRadius = 4.dp
+    val labelTextColor = Color.Black.copy(alpha = 0.6f)
 
-    // 🔁 Tự động điều chỉnh label dựa vào chế độ
-    val labelValues = if (selectedTab == "Year") listOf("60k", "80k", "100k") else listOf("5k", "10k", "15k")
-    val textColor = Color(0xFF4AA8FF)
+    val textMeasurer = rememberTextMeasurer()
 
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFE6FCE9))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(modifier = Modifier.height(chartHeight)) {
-            Column(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .padding(end = 4.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                labelValues.reversed().forEach {
-                    Text(text = it, fontSize = 12.sp, color = textColor)
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(chartHeight),
+            verticalAlignment = Alignment.Bottom,
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            incomeData.indices.forEach { index ->
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.spacedBy(spaceBetweenBars)
+                ) {
+                    // Income Bar
+                    if (index < incomeData.size) {
+                        val incomeValue = incomeData[index]
+                        val incomeHeightRatio = (incomeValue.toFloat() / maxValue.toFloat()).coerceIn(0f, 1f)
+                        val animatedIncomeHeight by animateDpAsState(
+                            targetValue = chartHeight * incomeHeightRatio,
+                            animationSpec = tween(durationMillis = 300)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(barWidth)
+                                .height(animatedIncomeHeight)
+                                .clip(RoundedCornerShape(topStart = barCornerRadius, topEnd = barCornerRadius))
+                                .background(barColors.getOrNull(0) ?: Color.Gray)
+                        )
+                    }
 
-            Box(modifier = Modifier.fillMaxSize()) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val canvasHeight = size.height
-                    val stepY = canvasHeight / 3
-                    repeat(3) { i ->
-                        val y = stepY * (i + 1)
-                        drawLine(
-                            color = textColor,
-                            start = Offset(0f, canvasHeight - y),
-                            end = Offset(size.width, canvasHeight - y),
-                            strokeWidth = 2f,
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f))
+                    // Expense Bar
+                    if (index < expenseData.size) {
+                        val expenseValue = expenseData[index]
+                        val expenseHeightRatio = (expenseValue.toFloat() / maxValue.toFloat()).coerceIn(0f, 1f)
+                        val animatedExpenseHeight by animateDpAsState(
+                            targetValue = chartHeight * expenseHeightRatio,
+                            animationSpec = tween(durationMillis = 300)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(barWidth)
+                                .height(animatedExpenseHeight)
+                                .clip(RoundedCornerShape(topStart = barCornerRadius, topEnd = barCornerRadius))
+                                .background(barColors.getOrNull(1) ?: Color.LightGray)
                         )
                     }
                 }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(start = 4.dp, end = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
-                ) {
-                    labels.indices.forEach { i ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Row(
-                                verticalAlignment = Alignment.Bottom,
-                                horizontalArrangement = Arrangement.spacedBy(spaceBetweenBars)
-                            ) {
-                                listOf(chartData1[i], chartData2[i]).forEachIndexed { j, value ->
-                                    val heightRatio = value / maxValue
-                                    val animatedHeight by animateDpAsState(
-                                        targetValue = chartHeight * heightRatio,
-                                        animationSpec = tween(durationMillis = 600)
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .width(barWidth)
-                                            .height(animatedHeight)
-                                            .clip(RoundedCornerShape(barCornerRadius))
-                                            .background(barColors[j])
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
 
-        Canvas(modifier = Modifier
-            .fillMaxWidth()
-            .height(2.dp)
-            .padding(start = 28.dp)) {
-            drawLine(
-                color = Color.Black,
-                start = Offset.Zero,
-                end = Offset(size.width, 0f),
-                strokeWidth = 2f
-            )
-        }
+        Spacer(modifier = Modifier.height(8.dp))
 
         Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp, start = 28.dp, end = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.Top
         ) {
-            labels.forEach {
+            labels.forEach { label ->
                 Text(
-                    text = it,
-                    fontSize = 12.sp,
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    text = label,
+                    color = labelTextColor,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1
                 )
             }
+        }
+    }
+}
+
+private fun getMonthLabels(count: Int): List<String> {
+    val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    val currentMonth = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH)
+    return (0 until count).map { months[(currentMonth - count + 1 + it + 12) % 12] }
+}
+@Composable
+fun IncomeExpenseSummaryRow(viewModel: AnalysisViewModel) {
+    val incomeExpenseSummary by viewModel.incomeExpenseSummary.collectAsState(initial = Pair("Loading...", "Loading..."))
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Filled.CallReceived, contentDescription = "Income", tint = Color(0xFF00B894))
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Income", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(incomeExpenseSummary.first, color = Color.Black, fontSize = 16.sp)
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(Icons.Filled.CallMade, contentDescription = "Expense", tint = Color(0xFF0984E3))
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Expense", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(incomeExpenseSummary.second, color = Color(0xFF0984E3), fontSize = 16.sp)
+        }
+    }
+}
+
+@Composable
+fun MyTargetsSection(viewModel: AnalysisViewModel) {
+    val financialGoals by viewModel.financialGoals.collectAsState(initial = emptyList())
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+    ) {
+        Text(
+            text = "My Targets",
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+            color = Color(0xFF052224)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        if (financialGoals.isEmpty()) {
+            Text("No financial goals set yet.", color = Color.Gray)
+        } else {
+            financialGoals.forEach { goal ->
+                TargetItem(goal = goal)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+@Composable
+fun TargetItem(goal: com.example.mainproject.data.model.FinancialGoal) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFFFFFFF))
+            .padding(16.dp)
+    ) {
+        Column {
+            Text(goal.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFFE0E0E0))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth((goal.currentAmount / goal.targetAmount).toFloat().coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .background(Color(0xFF3498DB))
+                )
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text("${(goal.currentAmount / goal.targetAmount * 100).toInt()}% completed", fontSize = 12.sp, color = Color.Gray)
         }
     }
 }

@@ -1,7 +1,7 @@
 package com.example.mainproject.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,10 +24,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.mainproject.Data.model.Category
+import com.example.mainproject.data.model.Category
 import com.example.mainproject.R
+import com.example.mainproject.data.repository.NotificationRepository
+import com.example.mainproject.data.repository.UserRepository
 import com.example.mainproject.ui.components.*
+import com.example.mainproject.viewModel.AppViewModel
+import com.example.mainproject.viewModel.AppViewModelFactory
 import com.example.mainproject.viewModel.TransactionViewModel
+import com.example.mainproject.viewModel.TransactionViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import java.text.NumberFormat
 import java.util.*
 public  val categoryIcons = mapOf(
@@ -43,7 +49,16 @@ public  val categoryIcons = mapOf(
 )
 
 @Composable
-fun CategoriesScreen(navController: NavController, viewModel: TransactionViewModel = viewModel()) {
+fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = viewModel(factory = AppViewModelFactory(auth = FirebaseAuth.getInstance()))) {
+    val currentUserState = appViewModel.currentUser.collectAsState()
+    val userId = currentUserState.value?.userId
+
+    val viewModel: TransactionViewModel = viewModel(
+        factory = TransactionViewModelFactory(
+            notificationRepository = NotificationRepository.create(),
+            userId = userId
+        )
+    )
     val textField1 = remember { mutableStateOf("") }
     val categoriesMap by viewModel.categories.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
@@ -70,8 +85,12 @@ fun CategoriesScreen(navController: NavController, viewModel: TransactionViewMod
         },
         topBar = {
             CustomHeader(
-                title = stringResource(R.string.categories_title),
-                onBackClick = { navController.popBackStack() }
+                title = "Category",
+                onBackClick = {
+                    navController.popBackStack()
+                },
+                backgroundColor = Color(0xFF3498DB), // Cung cấp giá trị cho backgroundColor
+                contentColor = Color.White       // Cung cấp giá trị cho contentColor
             )
         }
     ) { paddingValues ->

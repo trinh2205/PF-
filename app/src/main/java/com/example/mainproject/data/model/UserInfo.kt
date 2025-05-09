@@ -1,4 +1,4 @@
-package com.example.mainproject.Data.model
+package com.example.mainproject.data.model
 
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter

@@ -2,16 +2,13 @@ package com.example.mainproject.viewModel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.example.mainproject.Data.model.Account
-import com.example.mainproject.Data.model.Transaction
-import com.example.mainproject.Data.model.UserInfo
+import com.example.mainproject.data.model.Account
+import com.example.mainproject.data.model.Transaction
+import com.example.mainproject.data.model.UserInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 class AppViewModel(
     private val auth: FirebaseAuth
@@ -40,6 +37,7 @@ class AppViewModel(
 
     private val database = FirebaseDatabase.getInstance()
     private var userId: String? = auth.currentUser?.uid
+    val userID: String = userId ?: ""
 
     // Listeners
     private var userListener: ValueEventListener? = null

@@ -1,12 +1,8 @@
 package com.example.mainproject.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -19,17 +15,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mainproject.viewModel.TransactionViewModel
 import com.example.mainproject.ui.components.CustomHeader
-import com.example.mainproject.Data.model.Expense
+import com.example.mainproject.data.model.Expense
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
 //import com.example.mainproject.ui.screens.categoryIcons
@@ -57,7 +51,7 @@ fun CategoryDetailScreen(
     val categoriesMap by viewModel.categories.collectAsState()
     val categoriesList = categoriesMap.values.toList()
     val iconId = categoriesList.find { it.id == categoryId }?.iconId
-    val iconVector = categoryIcons[iconId] ?: Icons.Default.Help
+    val iconVector = categoryIcons[iconId] ?: Icons.Filled.Help
     var showDialog by remember { mutableStateOf(false) }
     var newExpenseTitle by remember { mutableStateOf("") }
     var newExpenseAmount by remember { mutableStateOf("") }
@@ -148,12 +142,12 @@ fun CategoryDetailScreen(
                 }
             )
         },
-        topBar = {
-            CustomHeader(
-                title = stringResource(R.string.categories_title),
-                onBackClick = { navController.popBackStack() }
-            )
-        }
+//        topBar = {
+//            CustomHeader(
+//                title = stringResource(R.string.categories_title)
+//                onBackClick = { navController.popBackStack() }
+//            )
+//        }
     ) { paddingValues ->
         Column(
             modifier = Modifier

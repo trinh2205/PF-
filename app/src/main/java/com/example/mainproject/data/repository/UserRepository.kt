@@ -1,6 +1,6 @@
-package com.example.mainproject.Data.repository
+package com.example.mainproject.data.repository
 
-import com.example.mainproject.Data.model.UserInfo
+import com.example.mainproject.data.model.UserInfo
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
