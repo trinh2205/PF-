@@ -3,40 +3,20 @@ package com.example.mainproject.ui.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.absoluteOffset
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Help
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,56 +38,75 @@ import com.example.mainproject.ui.components.NavigationItem
 
 @Composable
 fun ProfileScreen(navController: NavController) {
-
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // 👈 Bo góc toàn màn
             .background(Color.White)
     ) {
-        // Nền xanh phía trên
-
+        // Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp) // ✅ Chỉ chiếm 1 phần màn hình
+                .height(200.dp)
                 .background(Color(0xFF3498DB))
         ) {
-
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 30.dp)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(top = 30.dp, start = 16.dp, end = 16.dp, bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
-                Text(
-                    text = "Profile",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.White
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.clickable {
+                        navController.popBackStack()
+                    }
                 )
-                Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
+                Text("Profile", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
+                Icon(Icons.Default.Notifications, contentDescription = "Notification", tint = Color.White)
             }
         }
 
-        // Nền trắng bo góc
-        ProfileBackgroundBar(
+        // White rounded background
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 140.dp) // ✅ Đẩy xuống dưới phần xanh
-        )
+                .padding(top = 140.dp)
+                .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
+                .background(Color(0xFFF4FFF9))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 70.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Châu Trinh", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("ID: 22052005", fontSize = 14.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                ProfileOption(icon = Icons.Default.Person, title = "Edit Profile") {
+                    navController.navigate(Routes.EDIT_PROFILE)
+                }
+                ProfileOption(icon = Icons.Default.Settings, title = "Setting") {
+                    navController.navigate(Routes.SETTINGS)
+                }
+                ProfileOption(icon = Icons.Default.Logout, title = "Logout")
+            }
+        }
 
         // Avatar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 100.dp), // đặt avatar giữa
+                .padding(top = 100.dp),
             contentAlignment = Alignment.TopCenter
         ) {
             Image(
@@ -122,7 +121,7 @@ fun ProfileScreen(navController: NavController) {
             )
         }
 
-        // Bottom bar
+        // Bottom Bar
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -143,37 +142,8 @@ fun ProfileScreen(navController: NavController) {
     }
 }
 
-
 @Composable
-fun ProfileBackgroundBar(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp)) //BO GÓC TRÊN
-            .background(Color(0xFFF4FFF9)) // màu nền trắng ngà
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 70.dp), // chừa chỗ phía trên cho avatar
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Tên và ID
-            Text("Châu Trinh", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-            Text("ID: 22052005", fontSize = 14.sp, color = Color.Gray)
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Danh sách chức năng
-            ProfileOption(icon = Icons.Default.Person, title = "Edit Profile")
-            ProfileOption(icon = Icons.Default.Settings, title = "Setting")
-            ProfileOption(icon = Icons.Default.Logout, title = "Logout")
-        }
-    }
-}
-
-@Composable
-fun ProfileOption(icon: ImageVector, title: String) {
+fun ProfileOption(icon: ImageVector, title: String, onClick: (() -> Unit)? = null) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -181,15 +151,20 @@ fun ProfileOption(icon: ImageVector, title: String) {
             .padding(vertical = 8.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White)
+            .clickable { onClick?.invoke() }
             .padding(12.dp)
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = title,
-            tint = Color(0xFF3498DB),
-            modifier = Modifier.size(28.dp)
-        )
+        Icon(imageVector = icon, contentDescription = title, tint = Color(0xFF3498DB), modifier = Modifier.size(28.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = title, fontSize = 16.sp)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfilePreview() {
+    // Chỉ preview UI, không cần NavController
+    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
+        Text("Preview không có NavController")
     }
 }

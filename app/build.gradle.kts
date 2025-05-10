@@ -83,6 +83,7 @@ dependencies {
     implementation("androidx.navigation:navigation-compose")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0")
 
+
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
@@ -115,6 +116,7 @@ dependencies {
 //    }
     implementation("com.github.skydoves:landscapist-coil:2.4.7")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation(libs.firebase.database)
 
     // Testing
     testImplementation(libs.junit)

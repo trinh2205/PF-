@@ -22,7 +22,8 @@ androidGradlePlugin = "8.9.2"
 googleServices = "4.4.2"
 core-splashscreen = "1.0.1"
 composeBom = "2025.04.00"
-material = "1.12.0" # Thêm phiên bản Material Components
+material = "1.12.0"
+firebaseDatabase = "21.0.0" # Thêm phiên bản Material Components
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +53,7 @@ core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = 
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
+firebase-database = { group = "com.google.firebase", name = "firebase-database", version.ref = "firebaseDatabase" }
 
 [plugins]
 #android-application = { id = "com.android.application", version.ref = "agp" }
