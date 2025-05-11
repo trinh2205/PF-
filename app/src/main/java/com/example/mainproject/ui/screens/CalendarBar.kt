@@ -71,7 +71,7 @@ import java.time.YearMonth
 
 
 @Composable
-fun CalendarPickers(
+fun CalendarPicker(
     selectedDate: LocalDate? = null,
     onDateSelected: (LocalDate) -> Unit
 ) {
@@ -284,7 +284,7 @@ fun CalendarBackgroundBar() {
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-            CalendarPickers(
+            CalendarPicker(
                 selectedDate = selectedDate,
                 onDateSelected = { date ->
                     selectedDate = date
