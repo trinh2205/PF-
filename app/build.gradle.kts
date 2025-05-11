@@ -47,7 +47,16 @@ android {
 }
 
 dependencies {
-    // JavaPoet
+    // Các dependencies khác của bạn
+
+    // Các dependencies Firebase khác của bạn (analytics, auth, firestore, v.v.)
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0")) // Bạn đang dùng phiên bản này
+    implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-database-ktx")
+    implementation("com.google.firebase:firebase-storage")
+    implementation("com.google.firebase:firebase-messaging")
 //    implementation("com.squareup:javapoet:1.13.0")
 
     // Material
@@ -73,6 +82,7 @@ dependencies {
     implementation("androidx.activity:activity-compose")
     implementation("androidx.navigation:navigation-compose")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0")
+
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -106,10 +116,7 @@ dependencies {
 //    }
     implementation("com.github.skydoves:landscapist-coil:2.4.7")
     implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("com.patrykandpatrick.vico:compose:1.13.0")
-    implementation("com.patrykandpatrick.vico:core:1.13.0")
-    implementation("com.patrykandpatrick.vico:compose-m3:1.13.0")
-
+    implementation(libs.firebase.database)
 
     // Testing
     testImplementation(libs.junit)

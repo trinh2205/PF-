@@ -2,7 +2,7 @@ package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.mainproject.data.repository.NotificationRepository
+import com.example.mainproject.Data.repository.NotificationRepository
 
 class NotificationViewModelFactory(
     private val notificationRepository: NotificationRepository,

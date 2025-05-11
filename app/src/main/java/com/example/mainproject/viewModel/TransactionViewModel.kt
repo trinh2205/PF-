@@ -37,6 +37,8 @@ class TransactionViewModel : ViewModel() {
     private val _totalExpense = MutableStateFlow(0.0)
     private val _totalBudget = MutableStateFlow(0.0)
     private var _expenses = mutableStateOf<Map<String, List<Expense>>>(emptyMap())
+    private var _income = mutableStateOf<Map<String, List<Expense>>>(emptyMap())
+
 
     val userInfo: StateFlow<UserInfo?> = _userInfo.asStateFlow()
     val accounts: StateFlow<Map<String, Account>> = _accounts.asStateFlow()
@@ -47,6 +49,7 @@ class TransactionViewModel : ViewModel() {
     val totalExpense: StateFlow<Double> = _totalExpense.asStateFlow()
     val totalBudget: StateFlow<Double> = _totalBudget.asStateFlow()
     val expenses: State<Map<String, List<Expense>>> = _expenses
+    val income: State<Map<String, List<Expense>>> = _expenses
 
     init {
         val userId = auth.currentUser?.uid

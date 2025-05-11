@@ -2,8 +2,8 @@ package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mainproject.data.model.Notification
-import com.example.mainproject.data.repository.NotificationRepository
+import com.example.mainproject.Data.model.Notification
+import com.example.mainproject.Data.repository.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
