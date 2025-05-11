@@ -26,6 +26,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mainproject.data.model.Category
 import com.example.mainproject.R
+import com.example.mainproject.data.model.ListCategories
 import com.example.mainproject.data.repository.NotificationRepository
 import com.example.mainproject.data.repository.UserRepository
 import com.example.mainproject.ui.components.*
@@ -60,10 +61,10 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
         )
     )
     val textField1 = remember { mutableStateOf("") }
-    val categoriesMap by viewModel.categories.collectAsState()
+    val ListCategoriesMap by viewModel.listCategories.collectAsState()
     val totalBalance by viewModel.totalBalance.collectAsState()
     val totalExpense by viewModel.totalExpense.collectAsState()
-    val categoriesList = categoriesMap.values.toList()
+    val listCategoriesList = ListCategoriesMap.values.toList()
     var expenseAnalysisChecked by remember { mutableStateOf(true) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -208,7 +209,7 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                     OutlinedTextField(
                         value = textField1.value,
                         onValueChange = { textField1.value = it },
-                        label = { Text("Category Title") },
+                        label = { Text("List Category Title") },
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
@@ -216,15 +217,16 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = {
+                            val categoryName = textField1.value
+                            val iconKey = categoryName // Sử dụng trực tiếp tên danh mục làm key
                             if (textField1.value.isNotBlank()) {
-                                val newCategory = Category(
+                                val newListCategory = ListCategories(
                                     id = viewModel.generateCategoryId(),
                                     name = textField1.value,
-                                    type = "Expense",
                                     date = java.time.LocalDateTime.now().toString(),
-                                    iconId = textField1.value // Ánh xạ icon dựa trên title
+                                    icon = textField1.value // Ánh xạ icon dựa trên title
                                 )
-                                viewModel.addCategory(newCategory)
+                                viewModel.addListCategory(newListCategory)
                                 textField1.value = ""
                             }
                         },
@@ -232,7 +234,7 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                     ) {
-                        Text("Add Category")
+                        Text("Add List Category")
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     LazyVerticalGrid(
@@ -241,26 +243,27 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(categoriesList) { category ->
+                        items(listCategoriesList) { categoryListItems ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 GridItem(
-                                    id = category.id,
-                                    text = category.name,
+                                    id = categoryListItems.id,
+                                    text = categoryListItems.name,
                                     sizeItem = 100.dp,
                                     colorText = Color.Black,
                                     colorBackground = Color.White,
                                     activeTextColor = Color.White,
                                     activeBackgroundColor = colorResource(id = R.color.mainColor),
                                     roundedCorner = 16,
-                                    iconType = category.iconId,
+                                    iconType = categoryListItems.icon.toString(),
                                     categoryIcons = categoryIcons,
-                                    onClick = { categoryId ->
-                                        navController.navigate("itemScreen/${category.id}/${category.name}")
+                                    onClick = { categoryListItemsId ->
+//                                        navController.navigate("itemScreen/${category.id}/${category.name}")
+                                        navController.navigate("categoryDetail/${categoryListItemsId}")
                                     }
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = category.name,
+                                    text = categoryListItems.name,
                                     textAlign = TextAlign.Center,
                                     fontSize = 12.sp
                                 )

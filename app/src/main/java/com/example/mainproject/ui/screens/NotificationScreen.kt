@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -60,15 +61,17 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
         factory = NotificationViewModel.provideFactory(notificationRepository, userInfo?.userId)
     )
     val notifications by notificationViewModel.notifications.collectAsState()
+    val isLoadingNotifications by notificationViewModel.isLoading.collectAsState()
     val mainColor = colorResource(id = R.color.mainColor)
 
     val transactionViewModel: TransactionViewModel = viewModel(
         factory = TransactionViewModel.provideFactory(notificationRepository, userInfo?.userId)
     )
-    val transactionsMap by transactionViewModel.transactionsBE.collectAsState() // Lấy Map
+    val transactionsMap by transactionViewModel.transactionsBE.collectAsState()
+    val isLoadingTransactions by transactionViewModel.isLoadingTransactions.collectAsState()
 
     val groupedTransactions = remember(transactionsMap) {
-        transactionsMap.values.groupBy { transaction -> // Lấy các giá trị (TransactionBE) từ Map và group
+        transactionsMap.values.groupBy { transaction ->
             val transactionDate = LocalDate.parse(transaction.date)
             when {
                 transactionDate.isEqual(LocalDate.now()) -> "Hôm nay"
@@ -116,7 +119,7 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Notification",
+                            text = "Giao Dịch", // Giữ nguyên tiêu đề "Giao Dịch"
                             fontSize = 20.sp,
                             color = Color.White,
                             fontWeight = FontWeight.Bold
@@ -141,23 +144,43 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                     .background(Color(0xFFF4FFF9))
                     .padding(horizontal = 16.dp, vertical = 24.dp)
             ) {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    groupedTransactions.forEach { (timeTag, transactionsForTag) ->
-                        item {
-                            Text(
-                                text = timeTag,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp,
-                                color = Color.Black,
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                        items(transactionsForTag) { transaction ->
-                            TransactionBEItemUI(transaction = transaction)
+                if (isLoadingTransactions) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = mainColor)
+                    }
+                } else if (transactionsMap.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Chưa có giao dịch nào.",
+                            fontSize = 16.sp,
+                            color = Color.Gray
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        groupedTransactions.forEach { (timeTag, transactionsForTag) ->
+                            item {
+                                Text(
+                                    text = timeTag,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp,
+                                    color = Color.Black,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                            }
+                            items(transactionsForTag) { transaction ->
+                                TransactionBEItemUI(transaction = transaction)
+                            }
                         }
                     }
                 }
@@ -167,7 +190,7 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
 }
 
 @Composable
-fun TransactionBEItemUI(transaction: com.example.mainproject.data.model.TransactionBE) {
+fun TransactionBEItemUI(transaction: TransactionBE) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

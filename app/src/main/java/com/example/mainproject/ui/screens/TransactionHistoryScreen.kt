@@ -141,7 +141,9 @@ fun TransactionScreen(navController: NavController) {
                     title = "Transaction",
                     onBackClick = { navController.popBackStack() },
                     hasNotifications = null,
-                    onNotificationClick = { println("Notification icon clicked!") }
+                    onNotificationClick = { println("Notification icon clicked!") },
+                    backgroundColor = Color(0xFF3498DB),
+                    contentColor = Color.White
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

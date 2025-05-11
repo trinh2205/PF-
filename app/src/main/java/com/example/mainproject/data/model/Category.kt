@@ -6,5 +6,6 @@ data class Category(
     val name: String = "",
     val type: String = "", // expense, income, transfer
     val iconId: String = "", // Tên tài nguyên biểu tượng, ví dụ: "ic_food"
-    val date: String = "" // Thời gian tạo, định dạng ISO 8601
+    val date: String = "", // Thời gian tạo, định dạng ISO 8601
+    val listCategoryId: String = "" // Thêm trường này
 )

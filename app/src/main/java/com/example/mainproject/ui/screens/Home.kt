@@ -1,5 +1,6 @@
 package com.example.mainproject.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -21,17 +22,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.mainproject.data.model.Transaction
+import com.example.mainproject.data.model.TransactionBE
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.NavigationItem
 import com.example.mainproject.viewModel.AppViewModel
 import com.example.mainproject.viewModel.AppViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import java.text.NumberFormat
-import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.lazy.items
 import com.example.mainproject.NAVIGATION.Routes
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun Home(
@@ -45,6 +47,10 @@ fun Home(
     val currentUserInfo by appViewModel.currentUser.collectAsState()
     val totalExpenseState by appViewModel.totalExpense.collectAsState()
     val totalBudget by appViewModel.totalBudget.collectAsState()
+    val dailyTransactions by appViewModel.dailyTransactions.collectAsState()
+    val weeklyTransactions by appViewModel.weeklyTransactions.collectAsState()
+    val monthlyTransactions by appViewModel.monthlyTransactions.collectAsState()
+    var selectedFilter by remember { mutableStateOf("Weekly") }
     val formatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -149,7 +155,13 @@ fun Home(
                 Spacer(modifier = Modifier.height(5.dp))
                 VerificationStatus(isVerified = currentUserInfo?.isVerified ?: false)
                 Spacer(modifier = Modifier.height(16.dp))
-                TransactionSection(appViewModel)
+                TransactionSection(
+                    dailyTransactions = dailyTransactions,
+                    weeklyTransactions = weeklyTransactions,
+                    monthlyTransactions = monthlyTransactions,
+                    selectedFilter = selectedFilter,
+                    onFilterChange = { selectedFilter = it }
+                )
             }
         }
     }
@@ -217,62 +229,18 @@ fun VerificationStatus(isVerified: Boolean) {
 }
 
 @Composable
-fun TransactionSection(appViewModel: AppViewModel) {
-    var selectedFilter by remember { mutableStateOf("Weekly") }
-    val transactionsMap by appViewModel.transactions.collectAsState()
-    val transactionsList = remember(transactionsMap.values.toList(), selectedFilter) {
-        val allTransactions = transactionsMap.values.flatMap { it }.sortedByDescending { it.date }
-        val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // Định dạng date string của bạn
-
-        when (selectedFilter) {
-            "Daily" -> {
-                val today = Calendar.getInstance()
-                allTransactions.filter { transaction ->
-                    try {
-                        val transactionDate = dateFormatter.parse(transaction.date)
-                        val calendar = Calendar.getInstance()
-                        calendar.time = transactionDate!!
-                        calendar.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-                                calendar.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-                    } catch (e: Exception) {
-                        false // Xử lý trường hợp lỗi parse date
-                    }
-                }
-            }
-            "Weekly" -> {
-                val calendar = Calendar.getInstance()
-                val currentWeek = calendar.get(Calendar.WEEK_OF_YEAR)
-                val currentYear = calendar.get(Calendar.YEAR)
-                allTransactions.filter { transaction ->
-                    try {
-                        val transactionDate = dateFormatter.parse(transaction.date)
-                        val transactionCalendar = Calendar.getInstance()
-                        transactionCalendar.time = transactionDate!!
-                        transactionCalendar.get(Calendar.WEEK_OF_YEAR) == currentWeek &&
-                                transactionCalendar.get(Calendar.YEAR) == currentYear
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
-            }
-            "Monthly" -> {
-                val calendar = Calendar.getInstance()
-                val currentMonth = calendar.get(Calendar.MONTH)
-                val currentYear = calendar.get(Calendar.YEAR)
-                allTransactions.filter { transaction ->
-                    try {
-                        val transactionDate = dateFormatter.parse(transaction.date)
-                        val transactionCalendar = Calendar.getInstance()
-                        transactionCalendar.time = transactionDate!!
-                        transactionCalendar.get(Calendar.MONTH) == currentMonth &&
-                                transactionCalendar.get(Calendar.YEAR) == currentYear
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
-            }
-            else -> allTransactions // Mặc định hiển thị tất cả
-        }
+fun TransactionSection(
+    dailyTransactions: List<TransactionBE>,
+    weeklyTransactions: List<TransactionBE>,
+    monthlyTransactions: List<TransactionBE>,
+    selectedFilter: String,
+    onFilterChange: (String) -> Unit
+) {
+    val transactionsToShow = when (selectedFilter) {
+        "Daily" -> dailyTransactions
+        "Weekly" -> weeklyTransactions
+        "Monthly" -> monthlyTransactions
+        else -> weeklyTransactions // Giá trị mặc định
     }
 
     Box(
@@ -287,23 +255,22 @@ fun TransactionSection(appViewModel: AppViewModel) {
             Spacer(modifier = Modifier.height(16.dp))
             TimeFilterToggle(
                 selected = selectedFilter,
-                onSelected = { selectedFilter = it }
+                onSelected = onFilterChange
             )
             Spacer(modifier = Modifier.height(16.dp))
-            TransactionList(transactionsList = transactionsList)
+            TransactionList(transactionsList = transactionsToShow)
         }
     }
 }
 
 @Composable
-fun TransactionList(transactionsList: List<Transaction>, selectedFilter: String? = null) {
-    // Định nghĩa chiều cao tối đa cho khung danh sách (ví dụ: 300.dp)
+fun TransactionList(transactionsList: List<TransactionBE>) {
     val maxHeight = 300.dp
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = maxHeight) // Đặt chiều cao tối đa cho Box
+            .heightIn(max = maxHeight)
     ) {
         if (transactionsList.isEmpty()) {
             Text(
@@ -432,7 +399,7 @@ fun FinancialCard() {
                     Column {
                         Text("Revenue Last Week", fontSize = 12.sp, color = Color.Black)
                         Text(
-                            "$4,000.00", // Replace with actual Firebase data
+                            "$4,000.00", // Dữ liệu cũ - sẽ được bỏ qua
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
@@ -457,7 +424,7 @@ fun FinancialCard() {
                     Column {
                         Text("Food Last Week", fontSize = 12.sp, color = Color.Black)
                         Text(
-                            "-$100.00", // Replace with actual Firebase data
+                            "-$100.00", // Dữ liệu cũ - sẽ được bỏ qua
                             fontWeight = FontWeight.Bold,
                             color = Color.Red
                         )
@@ -469,7 +436,7 @@ fun FinancialCard() {
 }
 
 @Composable
-fun TransactionItem(transaction: Transaction) {
+fun TransactionItem(transaction: TransactionBE) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -488,8 +455,8 @@ fun TransactionItem(transaction: Transaction) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = transaction.icon,
-                    contentDescription = null,
+                    imageVector = if (transaction.type == "expense") Icons.Default.ArrowDownward else Icons.Default.ArrowUpward,
+                    contentDescription = transaction.title,
                     tint = Color.White
                 )
             }
@@ -501,7 +468,7 @@ fun TransactionItem(transaction: Transaction) {
                     fontSize = 14.sp
                 )
                 Text(
-                    text = transaction.date,
+                    text = LocalDate.parse(transaction.date).format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
                     fontSize = 12.sp,
                     color = Color(0xFF1D71B8)
                 )
@@ -509,45 +476,15 @@ fun TransactionItem(transaction: Transaction) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = transaction.period,
+                text = if (transaction.type == "expense") "Chi phí" else "Thu nhập",
                 fontSize = 12.sp,
                 color = Color.Gray
             )
-//            Text(
-//                text = transaction.amount,
-//                fontWeight = FontWeight.Bold,
-//                color = if (transaction.isPositive) Color.Black else Color.Red
-//            )
+            Text(
+                text = "${if (transaction.type == "expense") "-" else ""}${NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(transaction.amount)}",
+                fontWeight = FontWeight.Bold,
+                color = if (transaction.type == "expense") Color.Red else Color(0xFF00C853)
+            )
         }
     }
 }
-
-//@Composable
-//fun TransactionList(transactions: StateFlow<Map<String, List<Transaction>>>, filter: String) {
-//    // Lấy giá trị từ StateFlow
-//    val transactionsMap by transactions.collectAsState()
-//
-//    // Lọc các giao dịch dựa trên filter
-//    val filteredTransactions = transactionsMap.values.flatten().filter {
-//        when (filter.lowercase(Locale.ROOT)) {
-//            "daily" -> it.period.equals("daily", ignoreCase = true)
-//            "weekly" -> it.period.equals("weekly", ignoreCase = true)
-//            "monthly" -> it.period.equals("monthly", ignoreCase = true)
-//            else -> true
-//        }
-//    }
-//
-//    Column {
-//        filteredTransactions.forEach { transaction ->
-//            TransactionItem(transaction = transaction)
-//            Divider(color = Color.LightGray)
-//        }
-//    }
-//}
-
-//@Preview(showBackground = true, showSystemUi = true)
-//@Composable
-//fun HomePreview() {
-//    val navController = rememberNavController()
-//    Home(navController = navController)
-//}

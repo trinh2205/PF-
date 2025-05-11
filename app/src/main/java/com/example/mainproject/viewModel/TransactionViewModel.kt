@@ -1,23 +1,11 @@
 package com.example.mainproject.viewModel
 
-import androidx.annotation.OptIn
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-
-import com.example.mainproject.data.model.Account
-import com.example.mainproject.data.model.Budget
-import com.example.mainproject.data.model.Category
-import com.example.mainproject.data.model.Expense
-import com.example.mainproject.data.model.Notification
-import com.example.mainproject.data.model.NotificationType
-import com.example.mainproject.data.model.UserInfo
-import com.example.mainproject.data.model.Transaction
-import com.example.mainproject.data.model.TransactionBE
+import com.example.mainproject.data.model.*
 import com.example.mainproject.data.repository.NotificationRepository
-import com.example.mainproject.data.repository.TransactionRepository
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
@@ -31,8 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.util.UUID
-//
+
 class TransactionViewModel(
     private val notificationRepository: NotificationRepository,
     private val userId: String?
@@ -43,156 +32,137 @@ class TransactionViewModel(
     private val _accounts = MutableStateFlow<Map<String, Account>>(emptyMap())
     private val _categories = MutableStateFlow<Map<String, Category>>(emptyMap())
     private val _budgets = MutableStateFlow<Map<String, Budget>>(emptyMap())
-    private val _transactions = MutableStateFlow<Map<String, Transaction>>(emptyMap())
     private val _transactionsBE = MutableStateFlow<Map<String, TransactionBE>>(emptyMap())
     val transactionsBE: StateFlow<Map<String, TransactionBE>> = _transactionsBE.asStateFlow()
     private val _totalBalance = MutableStateFlow(0.0)
     private val _totalExpense = MutableStateFlow(0.0)
     private val _totalBudget = MutableStateFlow(0.0)
-    private var _expenses = mutableStateOf<Map<String, List<Expense>>>(emptyMap())
 
     val userInfo: StateFlow<UserInfo?> = _userInfo.asStateFlow()
     val accounts: StateFlow<Map<String, Account>> = _accounts.asStateFlow()
     val categories: StateFlow<Map<String, Category>> = _categories.asStateFlow()
+    private val _listCategories = MutableStateFlow<Map<String, ListCategories>>(emptyMap())
+    val listCategories: StateFlow<Map<String, ListCategories>> = _listCategories.asStateFlow()
     val budgets: StateFlow<Map<String, Budget>> = _budgets.asStateFlow()
-    val transactions: StateFlow<Map<String, Transaction>> = _transactions.asStateFlow()
     val totalBalance: StateFlow<Double> = _totalBalance.asStateFlow()
     val totalExpense: StateFlow<Double> = _totalExpense.asStateFlow()
     val totalBudget: StateFlow<Double> = _totalBudget.asStateFlow()
-    val expenses: State<Map<String, List<Expense>>> = _expenses
+
+    private val _isLoadingTransactions = MutableStateFlow(true)
+    val isLoadingTransactions: StateFlow<Boolean> = _isLoadingTransactions.asStateFlow()
 
     init {
         val userId = auth.currentUser?.uid
         if (userId != null) {
-            // Lấy UserInfo
-            database.child("users").child(userId).child("profile")
-                .addValueEventListener(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val user = snapshot.getValue(UserInfo::class.java)
-                        _userInfo.value = user
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
-                    }
-                })
-
-            // Lấy Accounts và tính totalBalance
-            database.child("users").child(userId).child("accounts")
-                .addValueEventListener(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val newAccounts = mutableMapOf<String, Account>()
-                        var balance = 0.0
-                        snapshot.children.forEach { data ->
-                            val account = data.getValue(Account::class.java)
-                            if (account != null) {
-                                newAccounts[data.key!!] = account
-                                balance += account.balance
-                            }
-                        }
-                        _accounts.value = newAccounts
-                        _totalBalance.value = balance
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
-                    }
-                })
-
-            // Lấy Categories
-            database.child("users").child(userId).child("categories")
-                .addValueEventListener(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val newCategories = mutableMapOf<String, Category>()
-                        snapshot.children.forEach { data ->
-                            val category = data.getValue(Category::class.java)
-                            if (category != null) {
-                                newCategories[data.key!!] = category
-                            }
-                        }
-                        _categories.value = newCategories
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
-                    }
-                })
-
-            // Lấy Budgets và tính totalBudget
-            database.child("users").child(userId).child("budgets")
-                .addValueEventListener(object : ValueEventListener {
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val newBudgets = mutableMapOf<String, Budget>()
-                        var totalBudget = 0.0
-                        snapshot.children.forEach { data ->
-                            val budget = data.getValue(Budget::class.java)
-                            if (budget != null) {
-                                newBudgets[data.key!!] = budget
-                                totalBudget += budget.amount
-                            }
-                        }
-                        _budgets.value = newBudgets
-                        _totalBudget.value = totalBudget
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
-                    }
-                })
-
-            // Lấy Transactions và tính totalExpense
-            database.child("users").child(userId).child("transactionsBE")
-                .addValueEventListener(object : ValueEventListener {
-                    @OptIn(UnstableApi::class)
-                    override fun onDataChange(snapshot: DataSnapshot) {
-                        val newTransactions = mutableMapOf<String, Transaction>()
-                        var expense = 0.0
-                        snapshot.children.forEach { data ->
-                            val transaction = data.getValue(Transaction::class.java)
-                            if (transaction != null) {
-                                newTransactions[data.key!!] = transaction
-                                if (transaction.type == "expense") {
-                                    expense += transaction.amount
-                                }
-                            }
-                        }
-                        _transactions.value = newTransactions
-                        _totalExpense.value = expense
-                    }
-
-                    override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
-                    }
-                })
-
-            // Lấy Expenses
-            loadExpenses(userId)
+            loadUserProfile(userId)
+            loadAccounts(userId)
+            loadListCategories(userId)
+            loadBudgets(userId)
+            loadTransactionsBE(userId)
         } else {
-            _userInfo.value = null // Đặt trạng thái mặc định nếu chưa đăng nhập
+            _userInfo.value = null
+            _isLoadingTransactions.value = false
         }
     }
 
-    private fun loadExpenses(userId: String) {
-        database.child("users").child(userId).child("categories")
+    private fun loadUserProfile(userId: String) {
+        database.child("users").child(userId).child("profile")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    val newExpenses = mutableMapOf<String, List<Expense>>()
-                    snapshot.children.forEach { categorySnapshot ->
-                        val categoryId = categorySnapshot.key ?: return@forEach
-                        val expensesList = mutableListOf<Expense>()
-                        categorySnapshot.child("expenses").children.forEach { expenseSnapshot ->
-                            val expense = expenseSnapshot.getValue(Expense::class.java)
-                            if (expense != null) {
-                                expensesList.add(expense)
+                    _userInfo.value = snapshot.getValue(UserInfo::class.java)
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Lỗi tải UserInfo: ${error.message}")
+                    _isLoadingTransactions.value = false
+                }
+            })
+    }
+
+    private fun loadAccounts(userId: String) {
+        database.child("users").child(userId).child("accounts")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newAccounts = mutableMapOf<String, Account>()
+                    var balance = 0.0
+                    snapshot.children.forEach { data ->
+                        data.getValue(Account::class.java)?.let { account ->
+                            newAccounts[data.key!!] = account
+                            balance += account.balance
+                        }
+                    }
+                    _accounts.value = newAccounts
+                    _totalBalance.value = balance
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Lỗi tải Accounts: ${error.message}")
+                    _isLoadingTransactions.value = false
+                }
+            })
+    }
+
+    private fun loadListCategories(userId: String) {
+        database.child("users").child(userId).child("ListCategories")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newListCategoriesMap = mutableMapOf<String, ListCategories>()
+                    snapshot.children.forEach { listCategorySnapshot ->
+                        listCategorySnapshot.getValue(ListCategories::class.java)?.let {
+                            newListCategoriesMap[listCategorySnapshot.key!!] = it
+                        }
+                    }
+                    _listCategories.value = newListCategoriesMap
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Lỗi tải ListCategories: ${error.message}")
+                    _isLoadingTransactions.value = false
+                }
+            })
+    }
+
+    private fun loadBudgets(userId: String) {
+        database.child("users").child(userId).child("budgets")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newBudgets = mutableMapOf<String, Budget>()
+                    var totalBudget = 0.0
+                    snapshot.children.forEach { data ->
+                        data.getValue(Budget::class.java)?.let { budget ->
+                            newBudgets[data.key!!] = budget
+                            totalBudget += budget.amount
+                        }
+                    }
+                    _budgets.value = newBudgets
+                    _totalBudget.value = totalBudget
+                }
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Lỗi tải Budgets: ${error.message}")
+                    _isLoadingTransactions.value = false
+                }
+            })
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun loadTransactionsBE(userId: String) {
+        database.child("users").child(userId).child("transactionsBE")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newTransactions = mutableMapOf<String, TransactionBE>()
+                    var expense = 0.0
+                    snapshot.children.forEach { data ->
+                        data.getValue(TransactionBE::class.java)?.let { transaction ->
+                            newTransactions[data.key!!] = transaction
+                            if (transaction.type == "expense") {
+                                expense += transaction.amount
                             }
                         }
-                        newExpenses[categoryId] = expensesList
                     }
-                    _expenses.value = newExpenses
+                    _transactionsBE.value = newTransactions
+                    _totalExpense.value = expense
+                    _isLoadingTransactions.value = false
                 }
-
                 override fun onCancelled(error: DatabaseError) {
-                    // Xử lý lỗi
+                    Log.e("TransactionViewModel", "Lỗi tải TransactionsBE: ${error.message}")
+                    _isLoadingTransactions.value = false
                 }
             })
     }
@@ -201,49 +171,96 @@ class TransactionViewModel(
         return UUID.randomUUID().toString()
     }
 
-    fun addCategory(category: Category) {
+    fun addListCategory(listCategory: ListCategories) {
+        val userId = auth.currentUser?.uid ?: return
+        val listCategoryId = generateCategoryId()
+        database.child("users").child(userId).child("ListCategories").child(listCategoryId)
+            .setValue(listCategory.copy(id = listCategoryId))
+            .addOnSuccessListener {
+                Log.d("addListCategory", "Đã thêm ListCategory ${listCategory.name} với ID: $listCategoryId")
+            }
+            .addOnFailureListener { error ->
+                Log.e("addListCategory", "Lỗi khi thêm ListCategory ${listCategory.name}: ${error.message}")
+            }
+    }
+
+    fun addCategory(listCategoryId: String, category: Category, onCategoryAdded: (String) -> Unit) {
         val userId = auth.currentUser?.uid ?: return
         val categoryId = generateCategoryId()
-        database.child("users").child(userId).child("categories").child(categoryId)
+        database.child("users").child(userId).child("ListCategories").child(listCategoryId)
+            .child("categories").child(categoryId)
             .setValue(category.copy(id = categoryId))
-    }
-
-    fun getExpenses(categoryId: String): List<Expense> {
-        return _expenses.value[categoryId] ?: emptyList()
-    }
-
-    fun addExpense(newExpense: Expense) {
-        viewModelScope.launch {
-            val updatedMap = _expenses.value.toMutableMap()
-            val currentList = updatedMap[newExpense.categoryId]?.toMutableList() ?: mutableListOf()
-            currentList.add(0, newExpense)
-            updatedMap[newExpense.categoryId] = currentList
-            _expenses.value = updatedMap
-
-            _totalExpense.update { it + newExpense.amount }
-
-            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return@launch
-            val dbRef = FirebaseDatabase.getInstance().reference
-            val expenseId = dbRef.child("users")
-                .child(userId)
-                .child("categories")
-                .child(newExpense.categoryId)
-                .child("expenses")
-                .push()
-                .key ?: return@launch
-
-            dbRef.child("users")
-                .child(userId)
-                .child("categories")
-                .child(newExpense.categoryId)
-                .child("expenses")
-                .child(expenseId)
-                .setValue(newExpense)
-                .addOnSuccessListener {
-                    // Sau khi thêm expense thành công, tạo và lưu notification
-                    sendNewExpenseNotification(userId, newExpense)
+            .addOnSuccessListener {
+                Log.d("addCategory", "Đã thêm category ${category.name} vào ListCategory $listCategoryId với ID: $categoryId")
+                _listCategories.update { currentMap ->
+                    currentMap[listCategoryId]?.let { existingListCategory ->
+                        val updatedCategories = existingListCategory.categories + (categoryId to category.copy(id = categoryId))
+                        currentMap + (listCategoryId to existingListCategory.copy(categories = updatedCategories))
+                    } ?: currentMap
                 }
+                onCategoryAdded(categoryId)
+            }
+            .addOnFailureListener { error ->
+                Log.e("addCategory", "Lỗi khi thêm category ${category.name} vào ListCategory $listCategoryId: ${error.message}")
+            }
+    }
+
+    fun addExpense(listCategoryId: String, categoryId: String, newExpense: Expense) {
+        Log.d("AddExpense", "Thêm expense vào transactionsBE/expenses với ListCategory ID: $listCategoryId, Category ID: $categoryId")
+        viewModelScope.launch {
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                Log.w("AddExpense", "Người dùng chưa xác thực.")
+                return@launch
+            }
+
+            val dbRef = database
+            val currentAccounts = _accounts.value
+            val firstAccountId = currentAccounts.keys.firstOrNull()
+
+            if (!firstAccountId.isNullOrEmpty()) {
+                val userBalanceRef = dbRef.child("users").child(userId).child("accounts").child(firstAccountId).child("balance")
+                val currentBalance = currentAccounts[firstAccountId]?.balance ?: 0.0
+
+                userBalanceRef.setValue(currentBalance - newExpense.amount).addOnSuccessListener {
+                    Log.d("AddExpense", "Cập nhật balance thành công. Balance mới: ${currentBalance - newExpense.amount}")
+                    _totalBalance.update { it - newExpense.amount }
+                    saveNewExpenseToTransactionBE(userId, newExpense)
+                    saveNewTransactionForExpense(userId, newExpense)
+                }.addOnFailureListener { error ->
+                    Log.e("AddExpense", "Lỗi khi cập nhật balance: ${error.message}")
+                }
+            } else {
+                Log.w("AddExpense", "Không tìm thấy tài khoản nào để trừ tiền.")
+            }
+
+            // Không cập nhật _expenses nữa vì chúng ta không lưu expense riêng trong categories
+            _totalExpense.update { it + newExpense.amount }
         }
+    }
+
+    private fun saveNewExpenseToTransactionBE(userId: String, newExpense: Expense) {
+        val dbRef = database
+        val expenseId = dbRef.child("users")
+            .child(userId)
+            .child("transactionsBE")
+            .child("expenses")
+            .push()
+            .key ?: return
+
+        dbRef.child("users")
+            .child(userId)
+            .child("transactionsBE")
+            .child("expenses")
+            .child(expenseId)
+            .setValue(newExpense.copy(id = expenseId))
+            .addOnSuccessListener {
+                Log.d("SaveExpenseBE", "Lưu expense vào transactionsBE/expenses thành công...")
+                sendNewExpenseNotification(userId, newExpense)
+            }
+            .addOnFailureListener { error ->
+                Log.e("SaveExpenseBE", "Lỗi khi lưu expense vào transactionsBE/expenses: ${error.message}")
+            }
     }
 
     fun getCategoryNameById(categoryId: String?): String? {
@@ -259,18 +276,37 @@ class TransactionViewModel(
             title = "New Expense",
             body = body,
             type = NotificationType.TRANSACTION.name,
-            data = mapOf("expenseId" to expense.id) // Giả sử Expense có ID
+            data = mapOf("expenseId" to expense.id)
         )
         viewModelScope.launch {
             notificationRepository.saveNotification(notification)
         }
     }
 
-    // Bên trong class TransactionViewModel
+    private fun saveNewTransactionForExpense(userId: String, expense: Expense) {
+        val transactionId = database.child("users").child(userId).child("transactionsBE").push().key ?: return
+        val newTransaction = TransactionBE(
+            id = transactionId,
+            categoryId = expense.categoryId,
+            title = expense.title,
+            amount = -expense.amount, // Số tiền âm cho chi phí
+            type = "expense",
+            date = LocalDate.now().toString(),
+            message = "Chi tiêu cho '${expense.title}'"
+        )
+        database.child("users").child(userId).child("transactionsBE").child(transactionId)
+            .setValue(newTransaction)
+            .addOnSuccessListener {
+                Log.d("SaveTransaction", "Lưu transaction thành công cho expense: $transactionId")
+            }
+            .addOnFailureListener { error ->
+                Log.e("SaveTransaction", "Lỗi khi lưu transaction cho expense: ${error.message}")
+            }
+    }
+
     companion object {
         fun provideFactory(
             notificationRepository: NotificationRepository,
-//            transactionRepository: TransactionRepository? = null,
             userId: String? = null
         ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -286,16 +322,13 @@ class TransactionViewModel(
     fun getTransactionsByCategoryName(targetCategoryName: String?): Flow<List<TransactionBE>> {
         return _transactionsBE.map { transactionsMap ->
             transactionsMap.values.filter { transaction ->
-                val categoryName = getCategoryNameById(transaction.categoryId)
-                categoryName == targetCategoryName
+                getCategoryNameById(transaction.categoryId) == targetCategoryName
             }
         }
     }
 
-    // Data class để kết hợp Transaction với categoryName
     data class TransactionWithCategoryName(
         val transaction: TransactionBE,
         val categoryName: String?
     )
-
 }

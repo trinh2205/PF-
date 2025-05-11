@@ -48,6 +48,7 @@ android {
 
 dependencies {
     // Các dependencies khác của bạn
+    // Sử dụng phiên bản phù hợp
 
     // Các dependencies Firebase khác của bạn (analytics, auth, firestore, v.v.)
     implementation(platform("com.google.firebase:firebase-bom:33.12.0")) // Bạn đang dùng phiên bản này

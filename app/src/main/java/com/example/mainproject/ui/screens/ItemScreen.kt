@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -94,21 +95,21 @@ fun ItemScreen(
                 contentColor = Color.White       // Cung cấp giá trị cho contentColor
             )
         },
-        floatingActionButtonPosition = FabPosition.Center,
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-//                    navController.navigate("categoryDetail/${categoryId}")
-                },
-                icon = { Icon(Icons.Filled.Add, contentDescription = "") },
-                text = { Text("Add new expense") },
-                shape = RoundedCornerShape(24.dp), // Bo góc
-                containerColor = Color(0xFF4CAF50), // Đổi backgroundColor thành containerColor
-                contentColor = Color.White,
-                modifier = Modifier
-                    .padding(bottom = 32.dp) // Đẩy lên trên navBar một ít
-            )
-        }
+//        floatingActionButtonPosition = FabPosition.Center,
+//        floatingActionButton = {
+//            ExtendedFloatingActionButton(
+//                onClick = {
+////                    navController.navigate("categoryDetail/${categoryId}")
+//                },
+//                icon = { Icon(Icons.Filled.Add, contentDescription = "") },
+//                text = { Text("Add new expense") },
+//                shape = RoundedCornerShape(24.dp), // Bo góc
+//                containerColor = Color(0xFF4CAF50), // Đổi backgroundColor thành containerColor
+//                contentColor = Color.White,
+//                modifier = Modifier
+//                    .padding(bottom = 32.dp) // Đẩy lên trên navBar một ít
+//            )
+//        }
     ) { paddingValues ->
         Log.d("ItemScreen", "Composing Column with padding: $paddingValues")
         Column(
@@ -264,7 +265,7 @@ fun ItemScreen(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         androidx.compose.material.Icon(
-                                            imageVector = listItem.icon,
+                                            imageVector = categoryIcons[listItem.icon] ?: Icons.Filled.QuestionMark,
                                             contentDescription = listItem.name,
                                             tint = Color.White
                                         )

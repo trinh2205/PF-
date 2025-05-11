@@ -17,11 +17,13 @@ import com.example.mainproject.data.repository.NotificationRepository
 import com.example.mainproject.ui.screens.AnalysisScreen
 import com.example.mainproject.ui.screens.CategoriesScreen
 import com.example.mainproject.ui.screens.CategoryDetailScreen
+import com.example.mainproject.ui.screens.EditProfile
 import com.example.mainproject.ui.screens.Home
 import com.example.mainproject.ui.screens.ItemScreen
 //import com.example.mainproject.ui.screens.ItemScreen
 import com.example.mainproject.ui.screens.MainScreen
 import com.example.mainproject.ui.screens.NotificationScreen
+import com.example.mainproject.ui.screens.ProfileScreen
 import com.example.mainproject.ui.screens.SignIn
 import com.example.mainproject.ui.screens.SignUp
 import com.example.mainproject.ui.screens.SplashScreen
@@ -71,13 +73,14 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.MAIN_SCREEN) {
             MainScreen(navController = navController)
         }
-        composable("categoryDetail/{categoryId}") { backStackEntry ->
-            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
+        composable("categoryDetail/{ListCategoryId}") { backStackEntry ->
+            val ListCategoryId = backStackEntry.arguments?.getString("ListCategoryId") ?: ""
             CategoryDetailScreen(
                 navController,
-                categoryId = categoryId,
+                viewModel = transactionViewModel,
+                ListCategoryId = ListCategoryId,
                 onBack = { navController.popBackStack() },
-                onAddExpenseClick = { navController.navigate("addExpense/$categoryId") }
+                onAddExpenseClick = { navController.navigate("addExpense/$ListCategoryId") }
             )
         }
 
@@ -98,23 +101,23 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.CATEGORIES) {
             CategoriesScreen(navController = navController)
         }
-//        composable(route = Routes.PROFILE) {
-//            ProfileScreen(navController = navController)
-//        }
-        composable(
-            route = "itemScreen/{listCategoryId}/{listCategoryName}",
-            arguments = listOf(
-                navArgument("listCategoryId") { type = NavType.StringType },
-                navArgument("listCategoryName") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val listCategoryId = backStackEntry.arguments?.getString("listCategoryId") ?: ""
-            val listCategoryName = backStackEntry.arguments?.getString("listCategoryName") ?: ""
-            val listItem = remember {
-                ListCategories(id = listCategoryId, name = listCategoryName, icon = Icons.Filled.Fastfood)
-            }
-             ItemScreen(navController = navController, listItem = listItem, viewModel = transactionViewModel)
+        composable(route = Routes.PROFILE) {
+            ProfileScreen(navController = navController)
         }
+//        composable(
+//            route = "itemScreen/{listCategoryId}/{listCategoryName}",
+//            arguments = listOf(
+//                navArgument("listCategoryId") { type = NavType.StringType },
+//                navArgument("listCategoryName") { type = NavType.StringType }
+//            )
+//        ) { backStackEntry ->
+//            val listCategoryId = backStackEntry.arguments?.getString("listCategoryId") ?: ""
+//            val listCategoryName = backStackEntry.arguments?.getString("listCategoryName") ?: ""
+//            val listItem = remember {
+//                ListCategories(id = listCategoryId, name = listCategoryName, icon = Icons.Filled.Fastfood)
+//            }
+//             ItemScreen(navController = navController, listItem = listItem, viewModel = transactionViewModel)
+//        }
         composable(route = Routes.TRANSACTION) {
             TransactionScreen(navController = navController)
         }

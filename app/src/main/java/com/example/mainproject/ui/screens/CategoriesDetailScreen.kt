@@ -1,5 +1,6 @@
 package com.example.mainproject.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -22,40 +23,56 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mainproject.viewModel.TransactionViewModel
-import com.example.mainproject.ui.components.CustomHeader
+import com.example.mainproject.ui.components.BottomNavigationBar
+import com.example.mainproject.data.model.Category
 import com.example.mainproject.data.model.Expense
 import com.example.mainproject.R
-import com.example.mainproject.ui.components.BottomNavigationBar
-//import com.example.mainproject.ui.screens.categoryIcons
+import androidx.compose.foundation.text.KeyboardOptions
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.util.Locale
-import androidx.compose.foundation.text.KeyboardOptions
 
 @Composable
 fun CategoryDetailScreen(
     navController: NavController,
-    categoryId: String,
+    ListCategoryId: String,
     viewModel: TransactionViewModel = viewModel(),
     onBack: () -> Unit,
     onAddExpenseClick: () -> Unit
 ) {
-    val expensesMap by viewModel.expenses // Directly use State
-    val categoryExpenses = expensesMap[categoryId] ?: emptyList()
+    val transactionsBE by viewModel.transactionsBE.collectAsState()
+    val categoriesMap by viewModel.categories.collectAsState()
+    val currentCategory = remember(categoriesMap) {
+        categoriesMap[ListCategoryId]
+    }
+    val categoryExpenses = remember(transactionsBE) {
+        transactionsBE.values.filter { it.categoryId == ListCategoryId && it.type == "expense" }
+            .map {
+                Expense(
+                    id = it.id,
+                    title = it.title,
+                    amount = it.amount * -1, // Chuyển lại thành số dương để hiển thị
+                    date = it.date,
+                    categoryId = it.categoryId
+                )
+            }
+    }
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val formatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
     val totalBalance by viewModel.totalBalance.collectAsState()
     val totalExpense by viewModel.totalExpense.collectAsState()
     var expenseAnalysisChecked by remember { mutableStateOf(true) }
-    val categoriesMap by viewModel.categories.collectAsState()
-    val categoriesList = categoriesMap.values.toList()
-    val iconId = categoriesList.find { it.id == categoryId }?.iconId
-    val iconVector = categoryIcons[iconId] ?: Icons.Filled.Help
+    val iconVector = categoryIcons[currentCategory?.iconId] ?: Icons.Filled.Help
     var showDialog by remember { mutableStateOf(false) }
     var newExpenseTitle by remember { mutableStateOf("") }
     var newExpenseAmount by remember { mutableStateOf("") }
     var amountError by remember { mutableStateOf<String?>(null) }
+    var selectedCategoryId by remember { mutableStateOf(ListCategoryId) } // Mặc định chọn category hiện tại
+
+    var newlyCreatedCategoryId by remember { mutableStateOf<String?>(null) }
+    var categoryCreated by remember { mutableStateOf(false) }
 
     if (showDialog) {
         AlertDialog(
@@ -73,7 +90,6 @@ fun CategoryDetailScreen(
                     OutlinedTextField(
                         value = newExpenseAmount,
                         onValueChange = { input ->
-                            // Only allow numeric input (including decimal point)
                             if (input.isEmpty() || input.matches(Regex("^\\d*\\.?\\d*$"))) {
                                 newExpenseAmount = input
                                 amountError = null
@@ -102,20 +118,17 @@ fun CategoryDetailScreen(
                                 title = newExpenseTitle,
                                 amount = amount,
                                 date = LocalDate.now().toString(),
-                                categoryId = categoryId
+                                categoryId = selectedCategoryId
                             )
-                            viewModel.addExpense(newExpense)
+
+                            Log.d("AddExpenseUI", "Adding expense to Category ID: $selectedCategoryId")
+                            viewModel.addExpense(ListCategoryId, selectedCategoryId, newExpense)
                             newExpenseTitle = ""
                             newExpenseAmount = ""
                             amountError = null
                             showDialog = false
                         } else {
-                            if (newExpenseTitle.isBlank()) {
-                                // You can add title error handling here if needed
-                            }
-                            if (amount <= 0 || amountError != null) {
-                                amountError = "Please enter a valid positive number"
-                            }
+                            // Xử lý lỗi input
                         }
                     }
                 ) {
@@ -142,12 +155,6 @@ fun CategoryDetailScreen(
                 }
             )
         },
-//        topBar = {
-//            CustomHeader(
-//                title = stringResource(R.string.categories_title)
-//                onBackClick = { navController.popBackStack() }
-//            )
-//        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -189,7 +196,7 @@ fun CategoryDetailScreen(
                         fontSize = 14.sp
                     )
                     Text(
-                        text = "-${formatter.format(totalExpense)}",
+                        text = "${formatter.format(totalExpense)}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                         color = Color(0xFFFF3B30)
@@ -269,7 +276,9 @@ fun CategoryDetailScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = { showDialog = true },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
                         ) {
                             Text("Add expense")
                         }
@@ -278,7 +287,9 @@ fun CategoryDetailScreen(
                     Column {
                         Button(
                             onClick = { showDialog = true },
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp)
                         ) {
                             Text("Add expense")
                         }
