@@ -3,16 +3,14 @@ package com.example.mainproject.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,93 +18,94 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.mainproject.ui.components.BottomNavigationBar
-import androidx.compose.material.icons.filled.*
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.example.mainproject.R
+import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.CustomHeader
 import com.example.mainproject.ui.components.NavigationItem
 import com.example.mainproject.ui.components.miniBox
-import org.xmlpull.v1.sax2.Driver
+import com.example.mainproject.viewModel.TransactionViewModel
+import java.text.SimpleDateFormat
+import java.util.*
 
 data class TransactionItem(
     val month: String,
     val date: String,
     val time: String,
-    val icon: ImageVector,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
     val description: String,
     val category: String,
     val amount: Double
 )
 
 @Composable
-fun TransactionScreen(navController: NavController) {
-    val transactionList = listOf(
-        TransactionItem(
-            month = "April",
-            date = "30",
-            time = "18:27",
-            icon = Icons.Filled.ArrowUpward, // Sử dụng icon mũi tên lên cho Income
-            description = "Salary",
-            category = "Monthly",
-            amount = 4000.00
-        ),
-        TransactionItem(
-            month = "April",
-            date = "24",
-            time = "17:00",
-            icon = Icons.Filled.ShoppingCart,
-            description = "Groceries",
-            category = "Pantry",
-            amount = -100.00
-        ),
-        TransactionItem(
-            month = "April",
-            date = "15",
-            time = "8:30",
-            icon = Icons.Filled.Home,
-            description = "Rent",
-            category = "Rent",
-            amount = -674.40
-        ),
-        TransactionItem(
-            month = "April",
-            date = "08",
-            time = "7:30",
-            icon = Icons.Filled.DirectionsBus,
-            description = "Transport",
-            category = "Fuel",
-            amount = -4.13
-        ),
-        TransactionItem(
-            month = "March",
-            date = "31",
-            time = "19:30",
-            icon = Icons.Filled.Restaurant,
-            description = "Food",
-            category = "Dinner",
-            amount = -70.40
-        )
-    )
+fun TransactionScreen(
+    navController: NavController,
+    viewModel: TransactionViewModel = viewModel()
+) {
+    // Thu thập dữ liệu từ ViewModel
+    val transactions by viewModel.transactions.collectAsState()
+    val expenses by viewModel.expenses
+    val categories by viewModel.categories.collectAsState()
 
-    var selectedTab by remember { mutableStateOf("transfer") }
+    // Chuyển đổi Transaction và Expense thành TransactionItem
+    val transactionItems by remember(transactions, expenses, categories) {
+        derivedStateOf {
+            val items = mutableListOf<TransactionItem>()
+
+            // Xử lý Transactions
+            transactions.forEach { (id, transaction) ->
+                val date = parseDate(transaction.date)
+                items.add(
+                    TransactionItem(
+                        month = SimpleDateFormat("MMMM", Locale.getDefault()).format(date),
+                        date = SimpleDateFormat("dd", Locale.getDefault()).format(date),
+                        time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date),
+                        icon = if (transaction.isPositive) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
+                        description = transaction.title,
+                        category = transaction.period,
+                        amount = if (transaction.isPositive) transaction.amount else -transaction.amount
+                    )
+                )
+            }
+
+            // Xử lý Expenses
+            expenses.forEach { (categoryId, expenseList) ->
+                val categoryName = categories[categoryId]?.name ?: "Unknown"
+                expenseList.forEach { expense ->
+                    val date = parseDate(expense.date)
+                    items.add(
+                        TransactionItem(
+                            month = SimpleDateFormat("MMMM", Locale.getDefault()).format(date),
+                            date = SimpleDateFormat("dd", Locale.getDefault()).format(date),
+                            time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date),
+                            icon = Icons.Filled.ArrowDownward, // Expense luôn là chi tiêu
+                            description = expense.title,
+                            category = categoryName,
+                            amount = -expense.amount // Expense là khoản chi, nên là số âm
+                        )
+                    )
+                }
+            }
+
+            // Sắp xếp theo ngày (mới nhất trước)
+            items.sortedByDescending { parseDate("${it.date} ${it.month}").time }
+        }
+    }
+
     var filterType by remember { mutableStateOf<String?>(null) }
 
-    val filteredTransactions = remember(transactionList, filterType) {
+    // Lọc giao dịch theo loại
+    val filteredTransactions = remember(transactionItems, filterType) {
         when (filterType) {
-            "Income" -> transactionList.filter { it.amount > 0 }
-            "Expense" -> transactionList.filter { it.amount < 0 }
-            else -> transactionList
+            "Income" -> transactionItems.filter { it.amount > 0 }
+            "Expense" -> transactionItems.filter { it.amount < 0 }
+            else -> transactionItems
         }
     }
 
@@ -119,13 +118,13 @@ fun TransactionScreen(navController: NavController) {
                 selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
                 onItemClick = { item ->
                     navController.navigate(item.route) {
-                        // ... cấu hình điều hướng (tùy chọn) ...
                         launchSingleTop = true
                         restoreState = true
                     }
                 }
             )
-    }) { paddingValues ->
+        }
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .padding(paddingValues)
@@ -153,12 +152,10 @@ fun TransactionScreen(navController: NavController) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     miniBox(
-                        onClick = {
-                            filterType = null
-                        }, // Đặt filterType về null để hiển thị tất cả
+                        onClick = { filterType = null },
                         icon = null,
                         title = "Total Balance",
-                        money = transactionList.sumOf { it.amount }, // Tính tổng thực tế
+                        money = transactionItems.sumOf { it.amount },
                         colorBG = Color(0xFFFFFFFF),
                         colorText = Color.Black,
                         fillWidth = 0.dp,
@@ -169,15 +166,14 @@ fun TransactionScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     miniBox(
                         onClick = { filterType = "Income" },
                         icon = Icons.Filled.ArrowUpward,
                         title = "Income",
-                        money = transactionList.filter { it.amount > 0 }.sumOf { it.amount },
+                        money = transactionItems.filter { it.amount > 0 }.sumOf { it.amount },
                         colorBG = Color(0xFFF4FFF9),
                         colorText = Color.Black,
                         fillWidth = 0.dp,
@@ -187,7 +183,7 @@ fun TransactionScreen(navController: NavController) {
                             .clickable { filterType = "Income" },
                         isActive = filterType == "Income",
                         activeIconColor = Color.White,
-                        activeTextColor = Color.White// Thêm Modifier.clickable
+                        activeTextColor = Color.White
                     )
 
                     Spacer(modifier = Modifier.width(8.dp))
@@ -195,7 +191,7 @@ fun TransactionScreen(navController: NavController) {
                         onClick = { filterType = "Expense" },
                         icon = Icons.Filled.ArrowDownward,
                         title = "Expense",
-                        money = transactionList.filter { it.amount < 0 }.sumOf { it.amount },
+                        money = transactionItems.filter { it.amount < 0 }.sumOf { it.amount },
                         colorBG = Color(0xFFF4FFF9),
                         colorText = colorResource(id = R.color.mainColor),
                         fillWidth = 0.dp,
@@ -205,7 +201,7 @@ fun TransactionScreen(navController: NavController) {
                             .clickable { filterType = "Expense" },
                         isActive = filterType == "Expense",
                         activeIconColor = Color.White,
-                        activeTextColor = Color.White// Thêm Modifier.clickable
+                        activeTextColor = Color.White
                     )
                 }
             }
@@ -246,7 +242,7 @@ fun TransactionScreen(navController: NavController) {
                                             .background(Color(0xFF4C9CDA)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        androidx.compose.material.Icon(
+                                        Icon(
                                             imageVector = transaction.icon,
                                             contentDescription = transaction.description,
                                             tint = Color.White
@@ -265,38 +261,33 @@ fun TransactionScreen(navController: NavController) {
                                     Spacer(
                                         modifier = Modifier
                                             .width(1.dp)
-                                            .fillMaxHeight(0.7f) // Điều chỉnh tỷ lệ chiều cao nếu cần
+                                            .fillMaxHeight(0.7f)
                                             .background(Color.Black)
-                                    ) // Đường kẻ dọc
+                                    )
 
                                     Text(
-                                        text = "${transaction.category}",
+                                        text = transaction.category,
                                         color = Color.Black,
                                         fontSize = 12.sp,
-                                        modifier = Modifier.padding(start = 8.dp) // Thêm padding
+                                        modifier = Modifier.padding(start = 8.dp)
                                     )
 
                                     Spacer(
                                         modifier = Modifier
                                             .width(1.dp)
-                                            .fillMaxHeight(0.7f) // Điều chỉnh tỷ lệ chiều cao nếu cần
+                                            .fillMaxHeight(0.7f)
                                             .background(Color.Black)
-                                            .padding(start = 8.dp) // Thêm padding
-                                    ) // Đường kẻ dọc
+                                            .padding(start = 8.dp)
+                                    )
 
                                     Text(
                                         text = "${if (transaction.amount < 0) "-" else ""}$${
-                                            String.format(
-                                                "%.2f",
-                                                Math.abs(transaction.amount)
-                                            )
+                                            String.format("%.2f", Math.abs(transaction.amount))
                                         }",
                                         fontWeight = FontWeight.Bold,
-                                        color = if (transaction.amount > 0) Color(0xFF4CAF50) else Color(
-                                            0xFFF44336
-                                        ),
+                                        color = if (transaction.amount > 0) Color(0xFF4CAF50) else Color(0xFFF44336),
                                         textAlign = TextAlign.End,
-                                        modifier = Modifier.padding(start = 8.dp) // Thêm padding
+                                        modifier = Modifier.padding(start = 8.dp)
                                     )
                                 }
                             }
@@ -308,9 +299,12 @@ fun TransactionScreen(navController: NavController) {
     }
 }
 
-//    @Preview(showBackground = true, showSystemUi = true)
-//    @Composable
-//    fun TransactionScreenPreview() {
-//        val navController = rememberNavController()
-//        TransactionScreen(navController = navController)
-//    }
+// Hàm hỗ trợ parse ngày
+private fun parseDate(dateString: String): Date {
+    return try {
+        SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).parse(dateString)
+            ?: Date() // Ngày mặc định nếu parse thất bại
+    } catch (e: Exception) {
+        Date() // Ngày mặc định nếu parse thất bại
+    }
+}

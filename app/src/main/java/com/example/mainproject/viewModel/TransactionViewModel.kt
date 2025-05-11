@@ -1,11 +1,13 @@
 package com.example.mainproject.viewModel
 
 import androidx.annotation.OptIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Money
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-
 import com.example.mainproject.Data.model.Account
 import com.example.mainproject.Data.model.Budget
 import com.example.mainproject.Data.model.Category
@@ -23,7 +25,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 import java.util.UUID
+
 
 class TransactionViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
@@ -37,8 +41,6 @@ class TransactionViewModel : ViewModel() {
     private val _totalExpense = MutableStateFlow(0.0)
     private val _totalBudget = MutableStateFlow(0.0)
     private var _expenses = mutableStateOf<Map<String, List<Expense>>>(emptyMap())
-    private var _income = mutableStateOf<Map<String, List<Expense>>>(emptyMap())
-
 
     val userInfo: StateFlow<UserInfo?> = _userInfo.asStateFlow()
     val accounts: StateFlow<Map<String, Account>> = _accounts.asStateFlow()
@@ -49,7 +51,6 @@ class TransactionViewModel : ViewModel() {
     val totalExpense: StateFlow<Double> = _totalExpense.asStateFlow()
     val totalBudget: StateFlow<Double> = _totalBudget.asStateFlow()
     val expenses: State<Map<String, List<Expense>>> = _expenses
-    val income: State<Map<String, List<Expense>>> = _expenses
 
     init {
         val userId = auth.currentUser?.uid
@@ -202,8 +203,6 @@ class TransactionViewModel : ViewModel() {
         return _expenses.value[categoryId] ?: emptyList()
     }
 
-
-
     fun addExpense(newExpense: Expense) {
         viewModelScope.launch {
             val updatedMap = _expenses.value.toMutableMap()
@@ -232,5 +231,32 @@ class TransactionViewModel : ViewModel() {
                 .child(expenseId)
                 .setValue(newExpense)
         }
+    }
+
+    fun getTransactions(): List<Transaction> {
+        val userId = auth.currentUser?.uid ?: return emptyList()
+        val transactions = mutableListOf<Transaction>()
+
+        viewModelScope.launch {
+            try {
+                val snapshot = database.child("users")
+                    .child(userId)
+                    .child("transactionBE")
+                    .get()
+                    .await()
+
+                snapshot.children.forEach { data ->
+                    val transaction = data.getValue(Transaction::class.java)
+                    if (transaction != null) {
+                        transactions.add(transaction.copy(id = data.key!!))
+                    }
+                }
+            } catch (e: Exception) {
+                // Log error for debugging
+                println("Error fetching transactions: ${e.message}")
+            }
+        }
+
+        return transactions
     }
 }
