@@ -1,4 +1,3 @@
-
 package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
@@ -16,7 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
-
+//
 class TransactionViewModel : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance().reference
