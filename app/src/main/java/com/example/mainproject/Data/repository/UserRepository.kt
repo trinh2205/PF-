@@ -1,6 +1,7 @@
 package com.example.mainproject.Data.repository
 
 import com.example.mainproject.Data.model.UserInfo
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -8,32 +9,43 @@ import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import javax.inject.Inject
-import javax.inject.Singleton
+import kotlinx.coroutines.tasks.await
 
-@Singleton
-class UserRepository @Inject constructor(
-    private val database: FirebaseDatabase
-){
-    private val usersRef = database.getReference("users")
+class UserRepository {
+    private val auth = FirebaseAuth.getInstance()
+    private val database = FirebaseDatabase.getInstance().reference
 
-    fun getUserById(userId: String) : Flow<UserInfo> = callbackFlow {
-        val userRef = usersRef.child(userId)
-        val listener = object :  ValueEventListener {
+    fun isAuthenticated(): Boolean {
+        return auth.currentUser != null
+    }
+
+    fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
+    }
+
+    fun getUserProfileFlow(userId: String): Flow<UserInfo?> = callbackFlow {
+        val userRef = database.child("users").child(userId).child("profile")
+        val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                TODO("Not yet implemented")
                 val userInfo = snapshot.getValue(UserInfo::class.java)
-                userInfo?.let { trySend(it) }
+                trySend(userInfo).isSuccess
             }
 
             override fun onCancelled(error: DatabaseError) {
-                TODO("Not yet implemented")
                 close(error.toException())
             }
         }
         userRef.addValueEventListener(listener)
-        awaitClose {
-            userRef.removeEventListener(listener)
+        awaitClose { userRef.removeEventListener(listener) }
+    }
+
+    suspend fun saveUserProfile(userId: String, userInfo: UserInfo): Result<Unit> {
+        return try {
+            database.child("users").child(userId).child("profile")
+                .setValue(userInfo).await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

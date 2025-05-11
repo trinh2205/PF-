@@ -1,4 +1,4 @@
-package com.example.mainproject.data.model
+package com.example.mainproject.Data.model
 
 data class Notification(
     val notificationId: String = "", // ID duy nhất của thông báo (có thể do Firebase tạo hoặc bạn tự tạo)
