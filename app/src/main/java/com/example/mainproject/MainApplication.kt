@@ -4,6 +4,11 @@ import android.app.Application
 //import dagger.hilt.android.HiltAndroidApp
 
 //@HiltAndroidApp
+import com.google.firebase.FirebaseApp
+
 class MainApplication : Application() {
-    // Bạn có thể thêm các logic khởi tạo ứng dụng khác ở đây nếu cần
+    override fun onCreate() {
+        super.onCreate()
+        FirebaseApp.initializeApp(this)
+    }
 }

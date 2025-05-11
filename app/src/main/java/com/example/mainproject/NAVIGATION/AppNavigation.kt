@@ -4,8 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -16,10 +14,9 @@ import com.example.mainproject.Data.model.ListCategories
 import com.example.mainproject.Data.repository.AuthRepository
 import com.example.mainproject.ui.auth.AuthViewModel
 import com.example.mainproject.ui.screens.CategoriesScreen
+import com.example.mainproject.ui.screens.EditProfile
 import com.example.mainproject.ui.screens.Home
-//import com.example.mainproject.ui.screens.ItemScreen
 import com.example.mainproject.ui.screens.MainScreen
-import com.example.mainproject.ui.screens.NotificationItem
 import com.example.mainproject.ui.screens.NotificationScreen
 import com.example.mainproject.ui.screens.NotificationSettingsScreen
 import com.example.mainproject.ui.screens.ProfileScreen
@@ -107,6 +104,9 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         }
         composable(Routes.NOTIFICATION_SETTINGS) {
             NotificationSettingsScreen(navController)
+        }
+        composable("edit_profile") {
+            EditProfile(navController = navController)
         }
     }
 }
