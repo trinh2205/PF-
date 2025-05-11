@@ -1,14 +1,19 @@
 package com.example.mainproject.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,14 +21,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.mainproject.Data.model.Transaction
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.CustomHeader
@@ -50,11 +58,12 @@ fun TransactionScreen(
 ) {
     // Thu thập dữ liệu từ ViewModel
     val transactions by viewModel.transactions.collectAsState()
+    val transactionBE by viewModel.transactionBE.collectAsState()
     val expenses by viewModel.expenses
     val categories by viewModel.categories.collectAsState()
 
-    // Chuyển đổi Transaction và Expense thành TransactionItem
-    val transactionItems by remember(transactions, expenses, categories) {
+    // Chuyển đổi Transaction, TransactionBE và Expense thành TransactionItem
+    val transactionItems by remember(transactions, transactionBE, expenses, categories) {
         derivedStateOf {
             val items = mutableListOf<TransactionItem>()
 
@@ -69,7 +78,23 @@ fun TransactionScreen(
                         icon = if (transaction.isPositive) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
                         description = transaction.title,
                         category = transaction.period,
-                        amount = if (transaction.isPositive) transaction.amount else -transaction.amount
+                        amount = if (transaction.isPositive) transaction.amount.toDouble() else -transaction.amount.toDouble()
+                    )
+                )
+            }
+
+            // Xử lý TransactionBE
+            transactionBE.forEach { transaction ->
+                val date = parseDate(transaction.date)
+                items.add(
+                    TransactionItem(
+                        month = SimpleDateFormat("MMMM", Locale.getDefault()).format(date),
+                        date = SimpleDateFormat("dd", Locale.getDefault()).format(date),
+                        time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date),
+                        icon = if (transaction.isPositive) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
+                        description = transaction.title,
+                        category = transaction.period,
+                        amount = if (transaction.isPositive) transaction.amount.toDouble() else transaction.amount.toDouble()
                     )
                 )
             }
@@ -84,10 +109,10 @@ fun TransactionScreen(
                             month = SimpleDateFormat("MMMM", Locale.getDefault()).format(date),
                             date = SimpleDateFormat("dd", Locale.getDefault()).format(date),
                             time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date),
-                            icon = Icons.Filled.ArrowDownward, // Expense luôn là chi tiêu
+                            icon = Icons.Filled.ArrowDownward,
                             description = expense.title,
                             category = categoryName,
-                            amount = -expense.amount // Expense là khoản chi, nên là số âm
+                            amount = -expense.amount
                         )
                     )
                 }
@@ -99,6 +124,7 @@ fun TransactionScreen(
     }
 
     var filterType by remember { mutableStateOf<String?>(null) }
+    var showAddIncomeDialog by remember { mutableStateOf(false) }
 
     // Lọc giao dịch theo loại
     val filteredTransactions = remember(transactionItems, filterType) {
@@ -123,6 +149,17 @@ fun TransactionScreen(
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            if (filterType == "Income") {
+                FloatingActionButton(
+                    onClick = { showAddIncomeDialog = true },
+                    backgroundColor = Color(0xFF4CAF50),
+                    contentColor = Color.White
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add Income")
+                }
+            }
         }
     ) { paddingValues ->
         Column(
@@ -297,14 +334,149 @@ fun TransactionScreen(
             }
         }
     }
+
+    // Hiển thị dialog thêm income
+    if (showAddIncomeDialog) {
+        AddIncomeDialog(
+            onDismiss = { showAddIncomeDialog = false },
+            onSave = { transaction ->
+                Log.d("TransactionScreen", "Saving transaction: $transaction")
+                viewModel.addTransaction(transaction)
+                showAddIncomeDialog = false
+            }
+        )
+    }
+}
+
+@Composable
+fun AddIncomeDialog(
+    onDismiss: () -> Unit,
+    onSave: (Transaction) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())) }
+    var period by remember { mutableStateOf("one-time") }
+    var periodExpanded by remember { mutableStateOf(false) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Add Income",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF4CAF50)
+                )
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) amount = it },
+                    label = { Text("Amount ($)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                )
+
+                OutlinedTextField(
+                    value = date,
+                    onValueChange = { date = it },
+                    label = { Text("Date (yyyy-MM-dd HH:mm:ss)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false // Date picker could be added
+                )
+
+                Box {
+                    OutlinedTextField(
+                        value = period,
+                        onValueChange = {},
+                        label = { Text("Period") },
+                        modifier = Modifier.fillMaxWidth(),
+                        readOnly = true,
+                        trailingIcon = {
+                            IconButton(onClick = { periodExpanded = !periodExpanded }) {
+                                Icon(
+                                    imageVector = if (periodExpanded) Icons.Filled.ArrowDropUp else Icons.Filled.ArrowDropDown,
+                                    contentDescription = "Toggle period dropdown"
+                                )
+                            }
+                        }
+                    )
+                    DropdownMenu(
+                        expanded = periodExpanded,
+                        onDismissRequest = { periodExpanded = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        listOf("one-time", "monthly", "weekly").forEach { option ->
+                            DropdownMenuItem(
+                                onClick = {
+                                    period = option
+                                    periodExpanded = false
+                                }
+                            ) {
+                                Text(option)
+                            }
+
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel")
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (title.isNotBlank() && amount.isNotBlank() && amount.toDoubleOrNull() != null) {
+                                onSave(
+                                    Transaction(
+                                        id = "", // Explicitly set id to empty
+                                        title = title,
+                                        amount = amount.toDouble(),
+                                        type = "income",
+                                        date = date,
+                                        period = period,
+                                        isPositive = true
+                                    )
+                                )
+                            }
+                        },
+                        enabled = title.isNotBlank() && amount.isNotBlank() && amount.toDoubleOrNull() != null
+                    ) {
+                        Text("Save")
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Hàm hỗ trợ parse ngày
 private fun parseDate(dateString: String): Date {
     return try {
         SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).parse(dateString)
-            ?: Date() // Ngày mặc định nếu parse thất bại
+            ?: Date()
     } catch (e: Exception) {
-        Date() // Ngày mặc định nếu parse thất bại
+        Date()
     }
 }

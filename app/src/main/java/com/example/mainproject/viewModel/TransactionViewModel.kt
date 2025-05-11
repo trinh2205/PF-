@@ -1,5 +1,6 @@
 package com.example.mainproject.viewModel
 
+import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Money
@@ -41,6 +42,7 @@ class TransactionViewModel : ViewModel() {
     private val _totalExpense = MutableStateFlow(0.0)
     private val _totalBudget = MutableStateFlow(0.0)
     private var _expenses = mutableStateOf<Map<String, List<Expense>>>(emptyMap())
+    private val _transactionBE = MutableStateFlow<List<Transaction>>(emptyList())
 
     val userInfo: StateFlow<UserInfo?> = _userInfo.asStateFlow()
     val accounts: StateFlow<Map<String, Account>> = _accounts.asStateFlow()
@@ -51,11 +53,15 @@ class TransactionViewModel : ViewModel() {
     val totalExpense: StateFlow<Double> = _totalExpense.asStateFlow()
     val totalBudget: StateFlow<Double> = _totalBudget.asStateFlow()
     val expenses: State<Map<String, List<Expense>>> = _expenses
+    val transactionBE: StateFlow<List<Transaction>> = _transactionBE.asStateFlow()
 
     init {
+        Log.e("fdfd", "fdfdfd")
+
         val userId = auth.currentUser?.uid
         if (userId != null) {
             // Lấy UserInfo
+
             database.child("users").child(userId).child("profile")
                 .addValueEventListener(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
@@ -64,7 +70,7 @@ class TransactionViewModel : ViewModel() {
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
+                        Log.e("TransactionViewModel", "Error fetching userInfo: ${error.message}")
                     }
                 })
 
@@ -75,10 +81,15 @@ class TransactionViewModel : ViewModel() {
                         val newAccounts = mutableMapOf<String, Account>()
                         var balance = 0.0
                         snapshot.children.forEach { data ->
-                            val account = data.getValue(Account::class.java)
-                            if (account != null) {
-                                newAccounts[data.key!!] = account
-                                balance += account.balance
+                            val key = data.key!!
+                            if (isValidFirebaseKey(key)) {
+                                val account = data.getValue(Account::class.java)
+                                if (account != null) {
+                                    newAccounts[key] = account
+                                    balance += account.balance
+                                }
+                            } else {
+                                Log.w("TransactionViewModel", "Skipping invalid account key: $key")
                             }
                         }
                         _accounts.value = newAccounts
@@ -86,7 +97,7 @@ class TransactionViewModel : ViewModel() {
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
+                        Log.e("TransactionViewModel", "Error fetching accounts: ${error.message}")
                     }
                 })
 
@@ -96,16 +107,22 @@ class TransactionViewModel : ViewModel() {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         val newCategories = mutableMapOf<String, Category>()
                         snapshot.children.forEach { data ->
-                            val category = data.getValue(Category::class.java)
-                            if (category != null) {
-                                newCategories[data.key!!] = category
+                            val key = data.key!!
+                            if (isValidFirebaseKey(key)) {
+
+                                val category = data.getValue(Category::class.java)
+                                if (category != null) {
+                                    newCategories[key] = category
+                                }
+                            } else {
+                                Log.w("TransactionViewModel", "Skipping invalid category key: $key")
                             }
                         }
                         _categories.value = newCategories
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
+                        Log.e("TransactionViewModel", "Error fetching categories: ${error.message}")
                     }
                 })
 
@@ -116,10 +133,15 @@ class TransactionViewModel : ViewModel() {
                         val newBudgets = mutableMapOf<String, Budget>()
                         var totalBudget = 0.0
                         snapshot.children.forEach { data ->
-                            val budget = data.getValue(Budget::class.java)
-                            if (budget != null) {
-                                newBudgets[data.key!!] = budget
-                                totalBudget += budget.amount
+                            val key = data.key!!
+                            if (isValidFirebaseKey(key)) {
+                                val budget = data.getValue(Budget::class.java)
+                                if (budget != null) {
+                                    newBudgets[key] = budget
+                                    totalBudget += budget.amount
+                                }
+                            } else {
+                                Log.w("TransactionViewModel", "Skipping invalid budget key: $key")
                             }
                         }
                         _budgets.value = newBudgets
@@ -127,24 +149,45 @@ class TransactionViewModel : ViewModel() {
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
+                        Log.e("TransactionViewModel", "Error fetching budgets: ${error.message}")
                     }
                 })
-
             // Lấy Transactions và tính totalExpense
-            database.child("users").child(userId).child("transactions")
+            database.child("users").child(userId).child("transactionsBE")
                 .addValueEventListener(object : ValueEventListener {
                     @OptIn(UnstableApi::class)
                     override fun onDataChange(snapshot: DataSnapshot) {
                         val newTransactions = mutableMapOf<String, Transaction>()
                         var expense = 0.0
                         snapshot.children.forEach { data ->
-                            val transaction = data.getValue(Transaction::class.java)
-                            if (transaction != null) {
-                                newTransactions[data.key!!] = transaction
-                                if (transaction.type == "expense") {
-                                    expense += transaction.amount
+                            val key = data.key!!
+                            if (isValidFirebaseKey(key)) {
+                                try {
+                                    val title = data.child("title").getValue(String::class.java) ?: ""
+                                    val amount = data.child("amount").getValue(Double::class.java) ?: 0.0
+                                    val type = data.child("type").getValue(String::class.java) ?: ""
+                                    val date = data.child("date").getValue(String::class.java) ?: ""
+                                    val period = data.child("period").getValue(String::class.java) ?: ""
+                                    val isPositive = data.child("isPositive").getValue(Boolean::class.java) ?: false
+
+                                    val transaction = Transaction(
+                                        id = key,
+                                        title = title,
+                                        amount = amount,
+                                        type = type,
+                                        date = date,
+                                        period = period,
+                                        isPositive = isPositive
+                                    )
+                                    newTransactions[key] = transaction
+                                    if (type == "expense") {
+                                        expense += amount
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("TransactionViewModel", "Failed to parse transaction $key: ${e.message}")
                                 }
+                            } else {
+                                Log.w("TransactionViewModel", "Skipping invalid transaction key: $key")
                             }
                         }
                         _transactions.value = newTransactions
@@ -152,14 +195,17 @@ class TransactionViewModel : ViewModel() {
                     }
 
                     override fun onCancelled(error: DatabaseError) {
-                        // Xử lý lỗi
+                        Log.e("TransactionViewModel", "Error fetching transactions: ${error.message}")
                     }
                 })
 
             // Lấy Expenses
             loadExpenses(userId)
+
+            // Lấy TransactionBE
+            loadTransactionBE(userId)
         } else {
-            _userInfo.value = null // Đặt trạng thái mặc định nếu chưa đăng nhập
+            _userInfo.value = null
         }
     }
 
@@ -170,26 +216,72 @@ class TransactionViewModel : ViewModel() {
                     val newExpenses = mutableMapOf<String, List<Expense>>()
                     snapshot.children.forEach { categorySnapshot ->
                         val categoryId = categorySnapshot.key ?: return@forEach
-                        val expensesList = mutableListOf<Expense>()
-                        categorySnapshot.child("expenses").children.forEach { expenseSnapshot ->
-                            val expense = expenseSnapshot.getValue(Expense::class.java)
-                            if (expense != null) {
-                                expensesList.add(expense)
+                        if (isValidFirebaseKey(categoryId)) {
+                            val expensesList = mutableListOf<Expense>()
+                            categorySnapshot.child("expenses").children.forEach { expenseSnapshot ->
+                                val expense = expenseSnapshot.getValue(Expense::class.java)
+                                if (expense != null) {
+                                    expensesList.add(expense)
+                                }
                             }
+                            newExpenses[categoryId] = expensesList
+                        } else {
+                            Log.w("TransactionViewModel", "Skipping invalid category key for expenses: $categoryId")
                         }
-                        newExpenses[categoryId] = expensesList
                     }
                     _expenses.value = newExpenses
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    // Xử lý lỗi
+                    Log.e("TransactionViewModel", "Error fetching expenses: ${error.message}")
+                }
+            })
+    }
+
+    private fun loadTransactionBE(userId: String) {
+        database.child("users").child(userId).child("transactionsBE")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val transactions = snapshot.children.mapNotNull { data ->
+                        val key = data.key!!
+                        if (isValidFirebaseKey(key)) {
+                            try {
+                                val title = data.child("title").getValue(String::class.java) ?: ""
+                                val amount = data.child("amount").getValue(Double::class.java)?.toDouble() ?: 0.0
+                                val type = data.child("type").getValue(String::class.java) ?: ""
+                                val date = data.child("date").getValue(String::class.java) ?: ""
+                                val period = data.child("period").getValue(String::class.java) ?: ""
+                                val isPositive = data.child("isPositive").getValue(Boolean::class.java) ?: false
+
+                                Transaction(
+                                    id = key,
+                                    title = title,
+                                    amount = amount,
+                                    type = type,
+                                    date = date,
+                                    period = period,
+                                    isPositive = isPositive
+                                )
+                            } catch (e: Exception) {
+                                Log.e("TransactionViewModel", "Failed to parse transactionBE $key: ${e.message}")
+                                null
+                            }
+                        } else {
+                            Log.w("TransactionViewModel", "Skipping invalid transactionBE key: $key")
+                            null
+                        }
+                    }
+                    _transactionBE.value = transactions
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Error fetching transactionBE: ${error.message}")
                 }
             })
     }
 
     fun generateCategoryId(): String {
-        return UUID.randomUUID().toString()
+        return UUID.randomUUID().toString().replace("[^a-zA-Z0-9-]", "")
     }
 
     fun addCategory(category: Category) {
@@ -234,29 +326,74 @@ class TransactionViewModel : ViewModel() {
     }
 
     fun getTransactions(): List<Transaction> {
-        val userId = auth.currentUser?.uid ?: return emptyList()
-        val transactions = mutableListOf<Transaction>()
+        return _transactionBE.value
+    }
 
+    fun addTransaction(transaction: Transaction) {
         viewModelScope.launch {
+            val userId = auth.currentUser?.uid ?: return@launch
+            val dbRef = FirebaseDatabase.getInstance().reference
+            val transactionId = dbRef.child("users")
+                .child(userId)
+                .child("transactionsBE")
+                .push()
+                .key ?: return@launch
+
+            // Log transaction and write details
+            Log.d("TransactionViewModel", "Adding transaction: $transaction")
+            Log.d("TransactionViewModel", "Transaction ID: $transactionId")
+            Log.d("TransactionViewModel", "Write path: users/$userId/transactionsBE/$transactionId")
+
+            // Sanitize transaction fields
+            val sanitizedTransaction = transaction.copy(
+                id = "", // Clear id to avoid invalid keys
+                title = transaction.title.replace("[/#$\\[\\]]".toRegex(), ""),
+                type = transaction.type.replace("[/#$\\[\\]]".toRegex(), ""),
+                date = transaction.date.replace("[/#$\\[\\]]".toRegex(), ""),
+                period = transaction.period.replace("[/#$\\[\\]]".toRegex(), ""),
+                amount = transaction.amount.toDouble() // Ensure amount is Double
+            )
+
+            val newTransaction = sanitizedTransaction.copy(id = transactionId)
+            Log.d("TransactionViewModel", "Sanitized transaction: $newTransaction")
+
             try {
-                val snapshot = database.child("users")
+                dbRef.child("users")
                     .child(userId)
-                    .child("transactionBE")
-                    .get()
+                    .child("transactionsBE")
+                    .child(transactionId)
+                    .setValue(newTransaction)
                     .await()
 
-                snapshot.children.forEach { data ->
-                    val transaction = data.getValue(Transaction::class.java)
-                    if (transaction != null) {
-                        transactions.add(transaction.copy(id = data.key!!))
-                    }
+                _transactions.update { current ->
+                    current + (transactionId to newTransaction)
+                }
+
+                if (transaction.type == "income") {
+                    _totalBalance.update { it + transaction.amount.toDouble() }
+                } else if (transaction.type == "expense") {
+                    _totalExpense.update { it + transaction.amount.toDouble() }
+                    _totalBalance.update { it - transaction.amount.toDouble() }
                 }
             } catch (e: Exception) {
-                // Log error for debugging
-                println("Error fetching transactions: ${e.message}")
+                Log.e("TransactionViewModel", "Failed to add transaction $transactionId: ${e.message}", e)
+                // Fallback: Try writing to a test node
+                try {
+                    dbRef.child("users")
+                        .child(userId)
+                        .child("test_transactionsBE")
+                        .child(transactionId)
+                        .setValue(newTransaction)
+                        .await()
+                    Log.d("TransactionViewModel", "Successfully wrote to test_transactions")
+                } catch (fallbackError: Exception) {
+                    Log.e("TransactionViewModel", "Fallback write failed: ${fallbackError.message}", fallbackError)
+                }
             }
         }
+    }
 
-        return transactions
+    private fun isValidFirebaseKey(key: String): Boolean {
+        return !key.contains("[/#$\\[\\]]".toRegex())
     }
 }

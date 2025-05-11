@@ -492,7 +492,7 @@ fun TransactionItem(transaction: Transaction) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = transaction.icon,
+                    imageVector = if (transaction.isPositive) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
                     contentDescription = null,
                     tint = Color.White
                 )

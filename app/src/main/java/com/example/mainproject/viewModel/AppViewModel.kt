@@ -96,7 +96,7 @@ class AppViewModel(
                         val transaction = transactionChildSnapshot.getValue(Transaction::class.java)
                         transaction?.let {
                             if (!it.isPositive) {
-                                totalExpense += it.amount
+                                totalExpense += it.amount.toDouble()
                             }
                             transactionListForDate.add(it)
                         }
