@@ -70,7 +70,149 @@ import java.time.Month
 import java.time.YearMonth
 
 
+@Composable
+fun CalendarPicker(
+    selectedDate: LocalDate? = null,
+    onDateSelected: (LocalDate) -> Unit
+) {
+    var currentMonth by remember { mutableStateOf(selectedDate?.monthValue ?: LocalDate.now().monthValue) }
+    var currentYear by remember { mutableStateOf(selectedDate?.year ?: LocalDate.now().year) }
+    var showMonthDropdown by remember { mutableStateOf(false) }
+    var showYearDropdown by remember { mutableStateOf(false) }
 
+    val daysInMonth = YearMonth.of(currentYear, currentMonth).lengthOfMonth()
+    val firstDayOfMonth = LocalDate.of(currentYear, currentMonth, 1).dayOfWeek.value % 7 // Monday = 1
+    val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+
+    Column(
+        modifier = Modifier
+            .background(Color.White)
+            .padding(8.dp)
+    ) {
+        // Month & Year Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { showMonthDropdown = !showMonthDropdown }
+            ) {
+                Text(
+                    text = Month.of(currentMonth).name.lowercase().replaceFirstChar { it.uppercase() },
+                    fontSize = 18.sp,
+                    color = Color(0xFF3498DB),
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(Icons.Default.ArrowDropDown, contentDescription = "Month Dropdown", tint = Color(0xFF3498DB))
+                DropdownMenu(
+                    expanded = showMonthDropdown,
+                    onDismissRequest = { showMonthDropdown = false }
+                ) {
+                    (1..12).forEach { month ->
+                        androidx.compose.material.DropdownMenuItem(
+                            onClick = {
+                                currentMonth = month
+                                showMonthDropdown = false
+                            }
+                        ) {
+                            Text(Month.of(month).name.lowercase().replaceFirstChar { it.uppercase() })
+                        }
+                    }
+                }
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { showYearDropdown = !showYearDropdown }
+            ) {
+                Text(
+                    text = currentYear.toString(),
+                    fontSize = 18.sp,
+                    color = Color(0xFF3498DB),
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(Icons.Default.ArrowDropDown, contentDescription = "Year Dropdown", tint = Color(0xFF3498DB))
+                DropdownMenu(
+                    expanded = showYearDropdown,
+                    onDismissRequest = { showYearDropdown = false }
+                ) {
+                    val range = (currentYear - 100)..(currentYear + 100)
+                    range.forEach { year ->
+                        androidx.compose.material.DropdownMenuItem(
+                            onClick = {
+                                currentYear = year
+                                showYearDropdown = false
+                            }
+                        ) {
+                            Text(year.toString())
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Days of week header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            daysOfWeek.forEach { day ->
+                Text(
+                    text = day,
+                    color = Color(0xFF3498DB),
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Days grid
+        val totalCells = daysInMonth + firstDayOfMonth
+        val rows = (totalCells + 6) / 7
+        Column {
+            repeat(rows) { row ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (col in 0..6) {
+                        val dayNumber = row * 7 + col - firstDayOfMonth + 1
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1f)
+                                .clickable(enabled = dayNumber in 1..daysInMonth) {
+                                    if (dayNumber in 1..daysInMonth) {
+                                        onDateSelected(LocalDate.of(currentYear, currentMonth, dayNumber))
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (dayNumber in 1..daysInMonth) {
+                                val isSelected = selectedDate?.let {
+                                    it.dayOfMonth == dayNumber && it.monthValue == currentMonth && it.year == currentYear
+                                } ?: false
+                                Text(
+                                    text = dayNumber.toString(),
+                                    color = if (isSelected) Color.White else Color.Black,
+                                    modifier = Modifier
+                                        .background(
+                                            if (isSelected) Color(0xFF3498DB) else Color.Transparent,
+                                            shape = CircleShape
+                                        )
+                                        .padding(8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 @Composable
 fun CalendarBar(onBackClick: () -> Unit) {
     Column(
@@ -97,7 +239,7 @@ fun CalendarBar(onBackClick: () -> Unit) {
                     contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier
-                        .clickable { onBackClick() } // <<< Thêm sự kiện click cho nút Back
+                        .clickable { onBackClick() }
                 )
                 Text(
                     text = "Calendar",
@@ -127,6 +269,8 @@ fun CalendarBar(onBackClick: () -> Unit) {
 
 @Composable
 fun CalendarBackgroundBar() {
+    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -140,11 +284,17 @@ fun CalendarBackgroundBar() {
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             Spacer(modifier = Modifier.height(24.dp))
-            CalendarView()
+            CalendarPicker(
+                selectedDate = selectedDate,
+                onDateSelected = { date ->
+                    selectedDate = date
+                    // Xử lý dữ liệu ngày tháng năm ở đây
+                    println("Ngày được chọn: $date")
+                }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Tabs (Spends, Categories)
             // Tabs (Spends, Categories)
             var selectedTab by remember { mutableStateOf("Spends") }
 
@@ -153,7 +303,7 @@ fun CalendarBackgroundBar() {
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(50.dp, Alignment.CenterHorizontally) // 👈 tăng khoảng cách ở đây
+                horizontalArrangement = Arrangement.spacedBy(50.dp, Alignment.CenterHorizontally)
             ) {
                 // Spends Tab
                 Box(
@@ -185,8 +335,6 @@ fun CalendarBackgroundBar() {
                     )
                 }
             }
-
-
 
             Spacer(modifier = Modifier.height(16.dp))
 
