@@ -428,7 +428,7 @@ fun AddMoneyScreen(
                 .fillMaxWidth()
                 .fillMaxHeight()
                 .align(Alignment.TopCenter)
-                .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp))
+                .clip(RoundedCornerShape(topStart = 31.dp, topEnd = 30.dp))
                 .background(Color.White)
                 .padding(start = 16.dp, end = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally

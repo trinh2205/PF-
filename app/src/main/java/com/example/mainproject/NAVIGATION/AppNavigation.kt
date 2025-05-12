@@ -99,13 +99,13 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.NOTIFICATION) {
             NotificationScreen(navController = navController, appViewModel = appViewModel)
         }
-        composable(Routes.SETTINGS) {
+        composable(route = Routes.SETTINGS) {
             SettingsScreen(navController)
         }
-        composable(Routes.NOTIFICATION_SETTINGS) {
+        composable(route = Routes.NOTIFICATION_SETTINGS) {
             NotificationSettingsScreen(navController)
         }
-        composable("edit_profile") {
+        composable(route = Routes.EDIT_PROFILE) {
             EditProfile(navController = navController)
         }
     }

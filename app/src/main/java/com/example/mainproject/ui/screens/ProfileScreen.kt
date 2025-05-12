@@ -11,13 +11,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
@@ -40,6 +46,7 @@ import com.example.mainproject.ui.components.NavigationItem
 fun ProfileScreen(navController: NavController) {
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -92,13 +99,19 @@ fun ProfileScreen(navController: NavController) {
                 Text("ID: 22052005", fontSize = 14.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(24.dp))
 
-                ProfileOption(icon = Icons.Default.Person, title = "Edit Profile") {
+                ProfileOption(icon = Icons.Default.Person, title = "Edit Profile", showArrow = true) {
                     navController.navigate(Routes.EDIT_PROFILE)
                 }
-                ProfileOption(icon = Icons.Default.Settings, title = "Setting") {
+                ProfileOption(icon = Icons.Default.Settings, title = "Settings", showArrow = true) {
                     navController.navigate(Routes.SETTINGS)
                 }
-                ProfileOption(icon = Icons.Default.Logout, title = "Logout")
+                ProfileOption(
+                    icon = Icons.AutoMirrored.Filled.Logout,
+                    title = "Logout",
+                    showArrow = true
+                ) {
+                    showLogoutDialog = true
+                }
             }
         }
 
@@ -139,11 +152,30 @@ fun ProfileScreen(navController: NavController) {
                 }
             )
         }
+
+        // Hiển thị dialog và làm mờ nền
+        if (showLogoutDialog) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xAA000000))
+                    .wrapContentSize(Alignment.Center)
+            ) {
+                EndSessionDialog(
+                    onConfirm = {
+                        // Handle confirm
+                    },
+                    onCancel = {
+                        showLogoutDialog = false
+                    }
+                )
+            }
+        }
     }
 }
 
 @Composable
-fun ProfileOption(icon: ImageVector, title: String, onClick: (() -> Unit)? = null) {
+fun ProfileOption(icon: ImageVector, title: String, showArrow: Boolean, onClick: (() -> Unit)? = null) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -157,14 +189,73 @@ fun ProfileOption(icon: ImageVector, title: String, onClick: (() -> Unit)? = nul
         Icon(imageVector = icon, contentDescription = title, tint = Color(0xFF3498DB), modifier = Modifier.size(28.dp))
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = title, fontSize = 16.sp)
+        if (showArrow) {
+            Spacer(modifier = Modifier.weight(1f))
+            androidx.compose.material.Icon(
+                Icons.AutoMirrored.Filled.ArrowForward,
+                contentDescription = null,
+                modifier = Modifier.clickable { onClick?.invoke() }
+            )
+        }
+    }
+}
+
+@Composable
+fun EndSessionDialog(
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(Color.White)
+            .padding(24.dp)
+            .width(320.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                "End Session",
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp,
+                color = Color(0xFF22313F)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "Are you sure you want to log out?",
+                fontWeight = FontWeight.Medium,
+                fontSize = 16.sp,
+                color = Color.Black,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onConfirm,
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3498DB)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text("Yes, End Session", color = Color.White, fontSize = 16.sp)
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onCancel,
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFDFF6E7)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text("Cancel", color = Color(0xFF4B5C5C), fontSize = 16.sp)
+            }
+        }
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-fun ProfilePreview() {
-    // Chỉ preview UI, không cần NavController
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        Text("Preview không có NavController")
-    }
+fun ProfileScreenPreview() {
+    val navController = rememberNavController()
+    ProfileScreen(navController)
 }

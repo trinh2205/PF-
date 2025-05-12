@@ -18,5 +18,6 @@ object Routes {
     const val SETTINGS = "settings"
     const val NOTIFICATION_SETTINGS = "notification_settings"
     const val EDIT_PROFILE = "edit_profile"
+    const val LOG_OUT = "log_out"
     // ... các route khác
 }
