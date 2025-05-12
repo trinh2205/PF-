@@ -5,12 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.example.mainproject.ui.components.NavigationItem
 
 @Composable
 fun BottomNavigationBar(
@@ -26,7 +24,7 @@ fun BottomNavigationBar(
         containerColor = Color(0xFFEFFFF6),
         tonalElevation = 0.dp
     ) {
-        NavigationItem.DefaultItems.forEach { item ->
+        NavigationItems.DefaultItems.forEach { item ->
             val selected = selectedItem == item.route
             NavigationBarItem(
                 selected = selected,
