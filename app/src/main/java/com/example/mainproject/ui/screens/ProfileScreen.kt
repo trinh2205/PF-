@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,20 +27,23 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.NavigationItem
+import com.example.mainproject.viewModel.EditProfileViewModel
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavController, viewModel: EditProfileViewModel = viewModel()) {
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route
+    val userInfoState = viewModel.userInfo.collectAsState()
+    val userInfo = userInfoState.value
 
     Box(
         modifier = Modifier
@@ -69,7 +73,11 @@ fun ProfileScreen(navController: NavController) {
                     }
                 )
                 Text("Profile", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
-                Icon(Icons.Default.Notifications, contentDescription = "Notification", tint = Color.White)
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = "Notification",
+                    tint = Color.White
+                )
             }
         }
 
@@ -88,17 +96,48 @@ fun ProfileScreen(navController: NavController) {
                     .padding(horizontal = 16.dp, vertical = 70.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Châu Trinh", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("ID: 22052005", fontSize = 14.sp, color = Color.Gray)
+                Text(
+                    text = userInfo.name.ifEmpty { "Unknown User" },
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = "ID: ${userInfo.userId.ifEmpty { "N/A" }}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
-                ProfileOption(icon = Icons.Default.Person, title = "Edit Profile") {
-                    navController.navigate(Routes.EDIT_PROFILE)
-                }
-                ProfileOption(icon = Icons.Default.Settings, title = "Setting") {
-                    navController.navigate(Routes.SETTINGS)
-                }
-                ProfileOption(icon = Icons.Default.Logout, title = "Logout")
+                // Edit Profile Option
+                ProfileOption(
+                    icon = Icons.Default.Person,
+                    title = "Edit Profile",
+                    onClick = {
+                        navController.navigate(Routes.EDIT_PROFILE) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+
+                // Settings Option
+                ProfileOption(
+                    icon = Icons.Default.Settings,
+                    title = "Settings",
+                    onClick = {
+                        navController.navigate(Routes.SETTINGS) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+
+                // Logout Option
+                ProfileOption(
+                    icon = Icons.Default.Logout,
+                    title = "Logout",
+                    onClick = {
+                        // Xử lý logout ở đây
+                    }
+                )
             }
         }
 
@@ -143,7 +182,11 @@ fun ProfileScreen(navController: NavController) {
 }
 
 @Composable
-fun ProfileOption(icon: ImageVector, title: String, onClick: (() -> Unit)? = null) {
+fun ProfileOption(
+    icon: ImageVector,
+    title: String,
+    onClick: (() -> Unit)? = null
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -154,17 +197,13 @@ fun ProfileOption(icon: ImageVector, title: String, onClick: (() -> Unit)? = nul
             .clickable { onClick?.invoke() }
             .padding(12.dp)
     ) {
-        Icon(imageVector = icon, contentDescription = title, tint = Color(0xFF3498DB), modifier = Modifier.size(28.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = Color(0xFF3498DB),
+            modifier = Modifier.size(28.dp)
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = title, fontSize = 16.sp)
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProfilePreview() {
-    // Chỉ preview UI, không cần NavController
-    Box(modifier = Modifier.fillMaxSize().background(Color.White)) {
-        Text("Preview không có NavController")
     }
 }
