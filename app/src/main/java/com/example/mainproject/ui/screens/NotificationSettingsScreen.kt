@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Switch
-import androidx.compose.material.SwitchDefaults
-import androidx.compose.material.Text
-
-import androidx.compose.material3.SegmentedButtonDefaults.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
@@ -29,9 +27,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
 import com.example.mainproject.ui.components.BottomNavigationBar
+import androidx.navigation.compose.rememberNavController
 
 
 @Composable
@@ -71,7 +70,7 @@ fun NotificationSettingsContent() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = null, tint = Color.White)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
                 Text("Notification Settings", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
                 Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
             }
@@ -131,6 +130,7 @@ fun NotificationItem(title: String, checked: Boolean, onCheckedChange: (Boolean)
 
 @Preview(showBackground = true)
 @Composable
-fun NotificationPreview() {
-    NotificationSettingsContent()
+fun NotificationSettingsScreenPreview() {
+    val navController = rememberNavController()
+    NotificationSettingsScreen(navController)
 }
