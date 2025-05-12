@@ -37,8 +37,10 @@ class NotificationRepository(private val database: FirebaseDatabase) {
     }
 
     public suspend fun saveNotification(notification: Notification) { // Đổi thành public suspend
-        notificationsRef.child(notification.userId)
-            .push()
+        notificationsRef.child("users")
+            .child(notification.userId)
+            .child("notifications")
+            .child(notification.notificationId) // Sử dụng notificationId làm key
             .setValue(notification)
             .await() // Thêm await nếu bạn muốn đợi thao tác hoàn thành
     }
