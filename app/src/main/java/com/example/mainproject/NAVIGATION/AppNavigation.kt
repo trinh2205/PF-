@@ -14,11 +14,13 @@ import com.example.mainproject.Data.model.ListCategories
 import com.example.mainproject.Data.repository.AuthRepository
 import com.example.mainproject.ui.auth.AuthViewModel
 import com.example.mainproject.ui.screens.CategoriesScreen
+import com.example.mainproject.ui.screens.DeleteAccountScreen
 import com.example.mainproject.ui.screens.EditProfile
 import com.example.mainproject.ui.screens.Home
 import com.example.mainproject.ui.screens.MainScreen
 import com.example.mainproject.ui.screens.NotificationScreen
 import com.example.mainproject.ui.screens.NotificationSettingsScreen
+import com.example.mainproject.ui.screens.PasswordSettingScreen
 import com.example.mainproject.ui.screens.ProfileScreen
 import com.example.mainproject.ui.screens.SettingsScreen
 import com.example.mainproject.ui.screens.SignIn
@@ -99,14 +101,22 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.NOTIFICATION) {
             NotificationScreen(navController = navController, appViewModel = appViewModel)
         }
-        composable(route = Routes.SETTINGS) {
+        composable(Routes.SETTINGS) {
             SettingsScreen(navController)
         }
-        composable(route = Routes.NOTIFICATION_SETTINGS) {
+        composable(Routes.NOTIFICATION_SETTINGS) {
             NotificationSettingsScreen(navController)
         }
-        composable(route = Routes.EDIT_PROFILE) {
+        composable("edit_profile") {
             EditProfile(navController = navController)
         }
+        // Trong phần cấu hình NavHost
+        composable(Routes.PASSWORD_SETTINGS) {
+            PasswordSettingScreen(navController)
+        }
+        composable("delete_account") {
+            DeleteAccountScreen(navController)
+        }
+
     }
 }

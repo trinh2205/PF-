@@ -9,19 +9,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.AlertDialog
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
+import androidx.compose.material.Icon
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,21 +29,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
 import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.NavigationItem
+import com.example.mainproject.viewModel.EditProfileViewModel
+import com.google.firebase.auth.FirebaseAuth
+
+// ... (các import như cũ)
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavController, viewModel: EditProfileViewModel = viewModel()) {
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route
+    val userInfoState = viewModel.userInfo.collectAsState()
+    val userInfo = userInfoState.value
+
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     Box(
@@ -76,7 +80,11 @@ fun ProfileScreen(navController: NavController) {
                     }
                 )
                 Text("Profile", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
-                Icon(Icons.Default.Notifications, contentDescription = "Notification", tint = Color.White)
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = "Notification",
+                    tint = Color.White
+                )
             }
         }
 
@@ -95,23 +103,48 @@ fun ProfileScreen(navController: NavController) {
                     .padding(horizontal = 16.dp, vertical = 70.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Châu Trinh", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                Text("ID: 22052005", fontSize = 14.sp, color = Color.Gray)
+                Text(
+                    text = userInfo.name.ifEmpty { "Unknown User" },
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = "ID: ${userInfo.userId.ifEmpty { "N/A" }}",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
                 Spacer(modifier = Modifier.height(24.dp))
 
-                ProfileOption(icon = Icons.Default.Person, title = "Edit Profile", showArrow = true) {
-                    navController.navigate(Routes.EDIT_PROFILE)
-                }
-                ProfileOption(icon = Icons.Default.Settings, title = "Settings", showArrow = true) {
-                    navController.navigate(Routes.SETTINGS)
-                }
+                // Edit Profile Option
                 ProfileOption(
-                    icon = Icons.AutoMirrored.Filled.Logout,
+                    icon = Icons.Default.Person,
+                    title = "Edit Profile",
+                    onClick = {
+                        navController.navigate(Routes.EDIT_PROFILE) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+
+                // Settings Option
+                ProfileOption(
+                    icon = Icons.Default.Settings,
+                    title = "Settings",
+                    onClick = {
+                        navController.navigate(Routes.SETTINGS) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+
+                // Logout Option
+                ProfileOption(
+                    icon = Icons.Default.Logout,
                     title = "Logout",
-                    showArrow = true
-                ) {
-                    showLogoutDialog = true
-                }
+                    onClick = {
+                        showLogoutDialog = true
+                    }
+                )
             }
         }
 
@@ -153,29 +186,64 @@ fun ProfileScreen(navController: NavController) {
             )
         }
 
-        // Hiển thị dialog và làm mờ nền
+        // Logout Dialog
         if (showLogoutDialog) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xAA000000))
-                    .wrapContentSize(Alignment.Center)
-            ) {
-                EndSessionDialog(
-                    onConfirm = {
-                        // Handle confirm
-                    },
-                    onCancel = {
-                        showLogoutDialog = false
+            AlertDialog(
+                onDismissRequest = { showLogoutDialog = false },
+                title = {
+                    Text(
+                        text = "End Session",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                },
+                text = {
+                    Text("Are you sure you want to log out?")
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            showLogoutDialog = false
+                            FirebaseAuth.getInstance().signOut()
+                            navController.navigate(Routes.SIGN_IN)
+                            {
+                                popUpTo(0) { inclusive = true } // clear toàn bộ backstack
+                                launchSingleTop = true
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFF3498DB),
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Yes, End Session")
                     }
-                )
-            }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = { showLogoutDialog = false },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFFEFFFF6),
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text("Cancel")
+                    }
+                },
+                shape = RoundedCornerShape(16.dp),
+                backgroundColor = Color.White
+            )
         }
     }
 }
 
+
 @Composable
-fun ProfileOption(icon: ImageVector, title: String, showArrow: Boolean, onClick: (() -> Unit)? = null) {
+fun ProfileOption(
+    icon: ImageVector,
+    title: String,
+    onClick: (() -> Unit)? = null,
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -186,76 +254,13 @@ fun ProfileOption(icon: ImageVector, title: String, showArrow: Boolean, onClick:
             .clickable { onClick?.invoke() }
             .padding(12.dp)
     ) {
-        Icon(imageVector = icon, contentDescription = title, tint = Color(0xFF3498DB), modifier = Modifier.size(28.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = Color(0xFF3498DB),
+            modifier = Modifier.size(28.dp)
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = title, fontSize = 16.sp)
-        if (showArrow) {
-            Spacer(modifier = Modifier.weight(1f))
-            androidx.compose.material.Icon(
-                Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = null,
-                modifier = Modifier.clickable { onClick?.invoke() }
-            )
-        }
     }
-}
-
-@Composable
-fun EndSessionDialog(
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.White)
-            .padding(24.dp)
-            .width(320.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                "End Session",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color(0xFF22313F)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Are you sure you want to log out?",
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
-                color = Color.Black,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onConfirm,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3498DB)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text("Yes, End Session", color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onCancel,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFDFF6E7)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text("Cancel", color = Color(0xFF4B5C5C), fontSize = 16.sp)
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProfileScreenPreview() {
-    val navController = rememberNavController()
-    ProfileScreen(navController)
 }

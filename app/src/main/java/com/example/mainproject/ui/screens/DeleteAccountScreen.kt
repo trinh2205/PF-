@@ -1,268 +1,187 @@
 package com.example.mainproject.ui.screens
 
-import androidx.compose.foundation.Canvas
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.mainproject.ui.components.BottomNavigationBar
+import com.google.firebase.auth.EmailAuthProvider
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeleteAccountScreen(navController: NavController) {
-    var showDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var showDialog by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        // Làm mờ nền khi dialog hiện
-        if (showDialog) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xAA000000))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text("Delete Account", fontWeight = FontWeight.Bold)
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                }
             )
         }
-
-        // Nội dung chính
+    ) { innerPadding ->
         Column(
             modifier = Modifier
+                .padding(innerPadding)
                 .fillMaxSize()
-                .background(Color(0xFFF4FFF9))
-                .padding(bottom = 80.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .background(Color(0xFFDFF5EB))
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top
         ) {
-            // Header
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .background(Color(0xFF3498DB))
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 30.dp, start = 16.dp, end = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
-                    Text("Delete Account", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
-                    Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                "Are You Sure You Want To Delete\nYour Account?",
+                "Are You Sure You Want To Delete Your Account?",
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.Black,
-                lineHeight = 22.sp,
-                modifier = Modifier.padding(horizontal = 24.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                color = Color(0xFF183D3D)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Box cảnh báo
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFFDFF6E7))
-                    .padding(16.dp)
-                    .fillMaxWidth(0.9f)
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFFDCF5E2),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Column {
-                    Text(
-                        "This action will permanently delete all of your data, and you will not be able to recover it. Please keep the following in mind before proceeding:",
-                        fontSize = 13.sp,
-                        color = Color(0xFF4B5C5C)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("• All your expenses, income and associated transactions will be eliminated.", fontSize = 13.sp, color = Color(0xFF4B5C5C))
-                    Text("• You will not be able to access your account or any related information.", fontSize = 13.sp, color = Color(0xFF4B5C5C))
-                    Text("• This action cannot be undone.", fontSize = 13.sp, color = Color(0xFF4B5C5C))
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("• All your expenses, income and associated transactions will be eliminated.")
+                    Text("• You will not be able to access your account or any related information.")
+                    Text("• This action cannot be undone.")
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                "Please Enter Your Password To Confirm\nDeletion Of Your Account.",
-                fontWeight = FontWeight.Medium,
-                fontSize = 15.sp,
-                color = Color.Black,
-                lineHeight = 20.sp,
-                modifier = Modifier.padding(horizontal = 24.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                "Please Enter Your Password To Confirm Deletion Of Your Account.",
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.align(Alignment.Start)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Password field
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                singleLine = true,
                 placeholder = { Text("Password") },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 trailingIcon = {
-                    val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
                     IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(imageVector = image, contentDescription = null)
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                            contentDescription = "Toggle Password Visibility"
+                        )
                     }
                 },
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFDFF6E7)),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = Color(0xFFDFF6E7),
-                    focusedContainerColor = Color(0xFFDFF6E7),
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedBorderColor = Color.Transparent
-                )
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Nút xác nhận và hủy
             Button(
                 onClick = { showDialog = true },
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3498DB)),
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(48.dp)
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A88DB)),
+                shape = RoundedCornerShape(16.dp)
             ) {
-                Text("Yes, Delete Account", color = Color.White, fontSize = 16.sp)
+                Text("Yes, Delete Account", color = Color.White)
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            OutlinedButton(
-                onClick = { /* TODO: Handle cancel */ },
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFDFF6E7)),
+            TextButton(
+                onClick = { navController.popBackStack() },
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
-                    .height(48.dp)
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
             ) {
-                Text("Cancel", color = Color(0xFF4B5C5C), fontSize = 16.sp)
+                Text("Cancel", color = Color.Gray)
             }
         }
 
-        // Bottom Navigation Bar
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-                .background(Color(0xFFEFFFF6))
-        ) {
-            BottomNavigationBar(
-                selectedItem = "", // Set your selected route
-                onItemClick = { /* TODO: Handle navigation */ }
-            )
-        }
-
-        // Dialog xác nhận
         if (showDialog) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xAA000000))
-                    .wrapContentSize(Alignment.Center)
-            ) {
-                DeleteAccountDialog(
-                    onConfirm = { /* TODO: Handle delete */ showDialog = false },
-                    onCancel = { showDialog = false }
-                )
-            }
+            AlertDialog(
+                onDismissRequest = { showDialog = false },
+                title = { Text("Delete Account", fontWeight = FontWeight.Bold) },
+                text = {
+                    Text("By deleting your account, you agree that you understand the consequences of this action and that you agree to permanently delete your account and all associated data.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDialog = false
+                        coroutineScope.launch {
+                            val user = FirebaseAuth.getInstance().currentUser
+                            val email = user?.email
+                            if (user != null && email != null) {
+                                val credential = EmailAuthProvider.getCredential(email, password)
+                                user.reauthenticate(credential)
+                                    .addOnSuccessListener {
+                                        user.delete()
+                                            .addOnSuccessListener {
+                                                Toast.makeText(context, "Account deleted", Toast.LENGTH_SHORT).show()
+                                                navController.navigate("login") {
+                                                    popUpTo(0)
+                                                }
+                                            }
+                                            .addOnFailureListener {
+                                                Toast.makeText(context, "Failed to delete account", Toast.LENGTH_SHORT).show()
+                                            }
+                                    }
+                                    .addOnFailureListener {
+                                        Toast.makeText(context, "Wrong password", Toast.LENGTH_SHORT).show()
+                                    }
+                            }
+                        }
+                    }) {
+                        Text("Yes, Delete Account", color = Color(0xFF2A88DB))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDialog = false }) {
+                        Text("Cancel")
+                    }
+                },
+                shape = RoundedCornerShape(16.dp)
+            )
         }
     }
-}
-
-@Composable
-fun DeleteAccountDialog(onConfirm: () -> Unit, onCancel: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.White)
-            .padding(24.dp)
-            .width(320.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Delete Account", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.Black)
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Are You Sure You Want To Log Out?",
-                fontWeight = FontWeight.Medium,
-                fontSize = 16.sp,
-                color = Color.Black,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                "By deleting your account, you agree that you understand the consequences of this action and that you agree to permanently delete your account and all associated data.",
-                fontSize = 14.sp,
-                color = Color(0xFF4B5C5C),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = onConfirm,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3498DB)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text("Yes, Delete Account", color = Color.White, fontSize = 16.sp)
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = onCancel,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color(0xFFDFF6E7)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text("Cancel", color = Color(0xFF4B5C5C), fontSize = 16.sp)
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun DeleteAccountScreenPreview() {
-    val navController = rememberNavController()
-    DeleteAccountScreen(navController)
 }
