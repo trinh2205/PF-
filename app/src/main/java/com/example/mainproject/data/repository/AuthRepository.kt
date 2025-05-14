@@ -31,17 +31,18 @@ class AuthRepository {
                         createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                     )
 
-                    val defaultAccount = Account(
-                        id = database.child("users").child(uid).child("accounts").push().key ?: "",
-                        name = fullName,
-                        balance = 1000.0,
-                        currency = "VND"
-                    )
+//                    val defaultAccount = Account(
+//                        id = database.child("users").child(uid).child("accounts").push().key ?: "",
+//                        name = fullName,
+//                        balance = 0.0,
+//                        currency = "VND",
+//                        userId = uid
+//                    )
 
                     val userData = mapOf(
                         "profile" to userInfo,
                         "categories" to emptyMap<String, Any>(),
-                        "accounts" to mapOf(defaultAccount.id to defaultAccount),
+//                        "accounts" to mapOf(defaultAccount.id to defaultAccount),
                         "transactions" to emptyMap<String, Any>(),
                         "budgets" to emptyMap<String, Any>(),
                         "templates" to emptyMap<String, Any>()

@@ -1,14 +1,14 @@
 package com.example.mainproject.NAVIGATION
 
 object Routes {
-    const val STATS = "stats"
+    const val EDIT_PROFILES = "editProfiles"
     const val TRANSFER = "transfer"
     const val PORTFOLIO = "portfolio"
     const val PROFILE = "profile"
     const val ANALYTICS = "analytics"
     const val SPLASH_SCREEN = "splashScreen"
     const val MAIN_SCREEN = "mainScreen"
-    const val SIGN_IN = "signIn/{email}/{password}"
+    const val SIGN_IN = "signIn"
     const val SIGN_UP = "signUp"
     const val HOME = "home"
     const val CATEGORIES = "categories"
@@ -18,6 +18,8 @@ object Routes {
     const val SETTINGS = "settings"
     const val NOTIFICATION_SETTINGS = "notification_settings"
     const val EDIT_PROFILE = "edit_profile"
+    const val BANK = "bankScreen" // Thêm route cho BankScreen
+    const val SAVE_BANK = "saveBankScreen" // Thêm route cho BankScreen
 
     // ... các route khác
 }

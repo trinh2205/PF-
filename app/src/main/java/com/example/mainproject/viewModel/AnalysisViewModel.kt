@@ -1,111 +1,177 @@
 package com.example.mainproject.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.mainproject.data.model.Budget
+import com.example.mainproject.data.model.Expense
 import com.example.mainproject.data.model.FinancialGoal
 import com.example.mainproject.data.repository.AnalysisRepository
-import kotlinx.coroutines.flow.*
+import com.example.mainproject.data.repository.IncomeExpenseSummary
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
-class AnalysisViewModel(private val repository: AnalysisRepository) : ViewModel() {
+data class ChartBarData(
+    val label: String,
+    val expense: Float,
+    val income: Float
+)
 
-    private val _totalBalance = MutableStateFlow("Loading...")
-    val totalBalance: StateFlow<String> = _totalBalance.asStateFlow()
+class AnalysisViewModel(private val analysisRepository: AnalysisRepository) : ViewModel() {
+    private val _chartData = MutableStateFlow<List<ChartBarData>>(emptyList())
+    val chartData: StateFlow<List<ChartBarData>> = _chartData
+    private val _selectedChartTab = MutableStateFlow("Daily")
+    val selectedChartTab: StateFlow<String> = _selectedChartTab
+    private val dateFormatter = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
-    private val _totalExpense = MutableStateFlow("Loading...")
-    val totalExpense: StateFlow<String> = _totalExpense.asStateFlow()
+    // StateFlow để theo dõi tổng thu nhập và chi phí
+    private val _incomeExpenseSummary = MutableStateFlow(IncomeExpenseSummary(0.0, 0.0))
+    val incomeExpenseSummary: StateFlow<IncomeExpenseSummary> = _incomeExpenseSummary
 
-    private val _expenseBudgetProgress = MutableStateFlow<Float?>(null)
-    val expenseBudgetProgress: StateFlow<Float?> = _expenseBudgetProgress.asStateFlow()
-
-    private val _expenseBudgetTotal = MutableStateFlow<String?>("Loading...")
-    val expenseBudgetTotal: StateFlow<String?> = _expenseBudgetTotal.asStateFlow()
-
+    // StateFlow để theo dõi danh sách các mục tiêu tài chính
     private val _financialGoals = MutableStateFlow<List<FinancialGoal>>(emptyList())
-    val financialGoals: StateFlow<List<FinancialGoal>> = _financialGoals.asStateFlow()
+    val financialGoals: StateFlow<List<FinancialGoal>> = _financialGoals
 
-    private val _incomeExpenseSummary = MutableStateFlow(Pair("Loading...", "Loading..."))
-    val incomeExpenseSummary: StateFlow<Pair<String, String>> = _incomeExpenseSummary.asStateFlow()
+    // Các StateFlow và logic khác của ViewModel (ví dụ: cho biểu đồ) sẽ ở đây
 
-    private val _chartData = MutableStateFlow(Pair(emptyList<Double>(), emptyList<Double>()))
-    val chartData: StateFlow<Pair<List<Double>, List<Double>>> = _chartData.asStateFlow()
+    // Các hàm để cập nhật _incomeExpenseSummary (ví dụ)
+    fun setIncomeExpenseSummary(summary: IncomeExpenseSummary) {
+        _incomeExpenseSummary.value = summary
+    }
+
+    // Các hàm để cập nhật _financialGoals (ví dụ)
+    fun setFinancialGoals(goals: List<FinancialGoal>) {
+        _financialGoals.value = goals
+    }
 
     init {
-        startRealtimeUpdates()
+        fetchChartData(_selectedChartTab.value)
     }
 
-    private fun startRealtimeUpdates() {
-        viewModelScope.launch {
-            repository.getTotalBalanceRealtime()
-                .map { formatCurrency(it) }
-                .collectLatest { _totalBalance.value = it }
-        }
+    fun setSelectedChartTab(tab: String) {
+        _selectedChartTab.value = tab
+        fetchChartData(tab)
+    }
 
+    private fun fetchChartData(tab: String) {
         viewModelScope.launch {
-            repository.getTotalExpense("month")
-                .map { formatCurrency(it, isExpense = true) }
-                .collectLatest {
-                    _totalExpense.value = it
-                    updateExpenseBudgetProgress(it)
+            when (tab) {
+                "Daily" -> analysisRepository.getDailyIncomeExpenseRealtime().collectLatest { (expenses, incomes) ->
+                    _chartData.value = mapToChartBarData(expenses, incomes, "daily")
                 }
-        }
-
-        viewModelScope.launch {
-            repository.getExpenseBudget()
-                .map { it?.amount?.let { amount -> formatCurrency(amount) } ?: "N/A" }
-                .collectLatest { _expenseBudgetTotal.value = it }
-        }
-
-        viewModelScope.launch {
-            combine(_totalExpense, repository.getExpenseBudget()) { totalExpenseStr, budget ->
-                val totalExpenseValue = totalExpenseStr.replace(Regex("[^\\d.-]"), "").toDoubleOrNull() ?: 0.0
-                budget?.let { if (it.amount > 0) (totalExpenseValue / it.amount).toFloat().coerceIn(0f, 1f) else 0f }
+                "Weekly" -> analysisRepository.getWeeklyIncomeExpenseRealtime().collectLatest { (expenses, incomes) ->
+                    _chartData.value = mapToChartBarData(expenses, incomes, "weekly")
+                }
+                "Monthly" -> analysisRepository.getMonthlyIncomeExpenseRealtime().collectLatest { (expenses, incomes) ->
+                    _chartData.value = mapToChartBarData(expenses, incomes, "monthly")
+                }
+                "Year" -> analysisRepository.getYearlyIncomeExpenseRealtime().collectLatest { (expenses, incomes) ->
+                    _chartData.value = mapToChartBarData(expenses, incomes, "yearly")
+                }
             }
-                .collectLatest { _expenseBudgetProgress.value = it }
-        }
-
-        viewModelScope.launch {
-            repository.getAllFinancialGoals()
-                .collectLatest { _financialGoals.value = it }
-        }
-
-        viewModelScope.launch {
-            repository.getIncomeExpenseTotals("month")
-                .map { (income, expense) -> Pair(formatCurrency(income), formatCurrency(expense, isExpense = true)) }
-                .collectLatest { _incomeExpenseSummary.value = it }
-        }
-
-        getChartData("Year") // Initial load for chart data
-    }
-
-    fun getChartData(selectedTab: String) {
-        viewModelScope.launch {
-            repository.getChartData(selectedTab)
-                .collectLatest { _chartData.value = it }
         }
     }
 
-    private fun updateExpenseBudgetProgress(currentExpenseStr: String) {
-        viewModelScope.launch {
-            val currentExpense = currentExpenseStr.replace(Regex("[^\\d.-]"), "").toDoubleOrNull() ?: 0.0
-            repository.getExpenseBudget()
-                .collectLatest { budget ->
-                    budget?.let { if (it.amount > 0) (currentExpense / it.amount).toFloat().coerceIn(0f, 1f) else 0f }
-                        ?.let { _expenseBudgetProgress.value = it }
+    private fun mapToChartBarData(
+        expenses: List<Expense>,
+        incomes: List<Expense>,
+        period: String
+    ): List<ChartBarData> {
+        val chartDataList = mutableListOf<ChartBarData>()
+        val calendar = Calendar.getInstance()
+        val today = calendar.time
+        val labels = mutableListOf<String>()
+        val expenseMap = mutableMapOf<String, Double>()
+        val incomeMap = mutableMapOf<String, Double>()
+
+        when (period) {
+            "daily" -> {
+                val daysOfWeek = listOf("CN", "T2", "T3", "T4", "T5", "T6", "T7").reversed()
+                for (i in 0..6) {
+                    calendar.time = today
+                    calendar.add(Calendar.DAY_OF_MONTH, -i)
+                    labels.add(dateFormatter.format(calendar.time))
                 }
+            }
+            "weekly" -> {
+                for (i in 0..3) {
+                    calendar.time = today
+                    calendar.add(Calendar.WEEK_OF_YEAR, -i)
+                    val startOfWeekCalendar = calendar.clone() as Calendar
+                    startOfWeekCalendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+                    labels.add("Tuần ${getWeekOfMonth(startOfWeekCalendar)}")
+                }
+            }
+            "monthly" -> {
+                val currentMonth = calendar.get(Calendar.MONTH)
+                val year = calendar.get(Calendar.YEAR)
+                for (i in 0..5) {
+                    calendar.set(year, currentMonth - i, 1)
+                    labels.add(SimpleDateFormat("MMM", Locale.getDefault()).format(calendar.time))
+                }
+                labels.reverse()
+            }
+            "yearly" -> {
+                val currentYear = calendar.get(Calendar.YEAR)
+                for (i in 0..4) {
+                    labels.add((currentYear - i).toString().takeLast(2))
+                }
+                labels.reverse()
+            }
         }
+        labels.reverse()
+
+        expenses.forEach { expense ->
+            val formattedDate = when (period) {
+                "daily" -> expense.date
+                "weekly" -> getStartOfWeekDate(expense.date)
+                "monthly" -> expense.date.substring(0, 7) // YYYY-MM
+                "yearly" -> expense.date.substring(0, 4) // YYYY
+                else -> expense.date
+            }
+            expenseMap[formattedDate] = (expenseMap[formattedDate] ?: 0.0) + expense.amount
+        }
+
+        incomes.forEach { income ->
+            val formattedDate = when (period) {
+                "daily" -> income.date
+                "weekly" -> getStartOfWeekDate(income.date)
+                "monthly" -> income.date.substring(0, 7) // YYYY-MM
+                "yearly" -> income.date.substring(0, 4) // YYYY
+                else -> income.date
+            }
+            incomeMap[formattedDate] = (incomeMap[formattedDate] ?: 0.0) + income.amount
+        }
+
+        labels.forEach { label ->
+            val expenseValue = expenseMap[label] ?: 0.0
+            val incomeValue = incomeMap[label] ?: 0.0
+            chartDataList.add(ChartBarData(label, expenseValue.toFloat(), incomeValue.toFloat()))
+        }
+
+        Log.d("AnalysisVM", "$period Chart Data: $chartDataList")
+        return chartDataList
     }
 
-    private fun formatCurrency(amount: Double): String {
-        val format = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
-        return format.format(amount)
+    private fun getWeekOfMonth(calendar: Calendar): Int {
+        val firstDayOfMonth = calendar.clone() as Calendar
+        firstDayOfMonth.set(Calendar.DAY_OF_MONTH, 1)
+        var weekOfMonth = calendar.get(Calendar.WEEK_OF_MONTH)
+        if (firstDayOfMonth.get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
+            weekOfMonth--
+        }
+        return weekOfMonth
     }
 
-    private fun formatCurrency(amount: Double, isExpense: Boolean = false): String {
-        val format = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
-        return (if (isExpense && amount != 0.0) "-" else "") + format.format(kotlin.math.abs(amount))
+    private fun getStartOfWeekDate(dateString: String): String {
+        val calendar = Calendar.getInstance()
+        calendar.time = dateFormatter.parse(dateString) ?: Date()
+        calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+        return dateFormatter.format(calendar.time)
     }
 }

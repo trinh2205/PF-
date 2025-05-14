@@ -49,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.mainproject.R
 import com.example.mainproject.data.model.UserInfo
+import com.example.mainproject.R
 import com.example.mainproject.viewModel.EditProfileViewModel
 import kotlinx.coroutines.launch
 

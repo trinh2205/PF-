@@ -69,7 +69,6 @@ dependencies {
 
     // Jetpack Compose
     implementation(platform("androidx.compose:compose-bom:2024.10.00"))
-    implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
@@ -79,7 +78,6 @@ dependencies {
     implementation("androidx.compose.runtime:runtime")
     implementation("androidx.compose.runtime:runtime-livedata")
     implementation("androidx.compose.runtime:runtime-rxjava2")
-    implementation("androidx.compose.material:material")
     implementation("androidx.activity:activity-compose")
     implementation("androidx.navigation:navigation-compose")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0")
@@ -129,6 +127,10 @@ dependencies {
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.0.21")
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.21")
+
+    implementation("androidx.compose.ui:ui:1.5.4")
+    implementation("androidx.compose.material:material:1.5.4")
+    implementation("androidx.compose.ui:ui-geometry:1.5.4")
 }
 
 //configurations.all {

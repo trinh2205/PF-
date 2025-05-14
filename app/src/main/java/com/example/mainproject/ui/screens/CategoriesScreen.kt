@@ -135,7 +135,7 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                         fontSize = 14.sp
                     )
                     Text(
-                        text = "-${formatter.format(totalExpense)}",
+                        text = "${formatter.format(totalExpense)}",
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                         color = Color(0xFFFF3B30)
@@ -185,16 +185,16 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Checkbox(
-                    checked = expenseAnalysisChecked,
-                    onCheckedChange = { expenseAnalysisChecked = it }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    stringResource(R.string.expense_analysis),
-                    color = Color.Black,
-                    fontSize = 14.sp
-                )
+//                Checkbox(
+//                    checked = expenseAnalysisChecked,
+//                    onCheckedChange = { expenseAnalysisChecked = it }
+//                )
+//                Spacer(modifier = Modifier.width(8.dp))
+//                Text(
+//                    stringResource(R.string.expense_analysis),
+//                    color = Color.Black,
+//                    fontSize = 14.sp
+//                )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Box(
@@ -244,29 +244,47 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(listCategoriesList) { categoryListItems ->
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                GridItem(
-                                    id = categoryListItems.id,
-                                    text = categoryListItems.name,
-                                    sizeItem = 100.dp,
-                                    colorText = Color.Black,
-                                    colorBackground = Color.White,
-                                    activeTextColor = Color.White,
-                                    activeBackgroundColor = colorResource(id = R.color.mainColor),
-                                    roundedCorner = 16,
-                                    iconType = categoryListItems.icon.toString(),
-                                    categoryIcons = categoryIcons,
-                                    onClick = { categoryListItemsId ->
-//                                        navController.navigate("itemScreen/${category.id}/${category.name}")
-                                        navController.navigate("categoryDetail/${categoryListItemsId}")
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = categoryListItems.name,
-                                    textAlign = TextAlign.Center,
-                                    fontSize = 12.sp
-                                )
+                            Box( // Sử dụng Box để định vị nút xóa trên GridItem
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    GridItem(
+                                        id = categoryListItems.id,
+                                        text = categoryListItems.name,
+                                        sizeItem = 100.dp,
+                                        colorText = Color.Black,
+                                        colorBackground = Color.White,
+                                        activeTextColor = Color.White,
+                                        activeBackgroundColor = colorResource(id = R.color.mainColor),
+                                        roundedCorner = 16,
+                                        iconType = categoryListItems.icon.toString(),
+                                        categoryIcons = categoryIcons,
+                                        onClick = { categoryListItemsId ->
+                                            navController.navigate("categoryDetail/${categoryListItemsId}")
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = categoryListItems.name,
+                                        textAlign = TextAlign.Center,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                // Nút xóa ở góc trên bên phải của Box (đè lên GridItem)
+                                IconButton(
+                                    onClick = {
+                                        viewModel.deleteListCategory(categoryListItems.id)
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd) // Định vị ở góc trên bên phải của Box
+                                        .padding(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Xóa",
+                                        tint = Color.Red
+                                    )
+                                }
                             }
                         }
                     }

@@ -18,6 +18,7 @@ import java.util.Locale
 class AppViewModel(
     private val auth: FirebaseAuth
 ) : ViewModel() {
+    private var currentUserId: String? = auth.currentUser?.uid
 
     // StateFlow cho thông tin người dùng và trạng thái đăng nhập
     private val _currentUser = MutableStateFlow<UserInfo?>(null)
@@ -188,24 +189,21 @@ class AppViewModel(
     }
 
     private fun startAccountsListener(userId: String) {
-        val accountsRef = database.getReference("users").child(userId).child("accounts")
-        accountsListener = accountsRef.addValueEventListener(object : ValueEventListener {
+        val accountRef = database.getReference("users").child(userId).child("account") // Trỏ trực tiếp đến node "account"
+        accountsListener = accountRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                var totalBalance = 0.0
-                val accountsList = mutableListOf<Account>() // Để log accounts
-                snapshot.children.forEach { accountSnapshot ->
-                    val account = accountSnapshot.getValue(Account::class.java)
-                    account?.let {
-                        totalBalance += it.balance
-                        accountsList.add(it)
-                    }
+                val account = snapshot.getValue(Account::class.java)
+                if (account != null) {
+                    _totalBalance.value = account.balance // Lấy balance trực tiếp từ đối tượng Account
+                    Log.d("AppViewModel", "Account data loaded in startAccountsListener: $account") // Log đối tượng Account
+                } else {
+                    _totalBalance.value = 0.0 // Hoặc giá trị mặc định khác nếu account null
+                    Log.w("AppViewModel", "No account data found for user: $userId")
                 }
-                _totalBalance.value = totalBalance
-                Log.d("AppViewModel", "Accounts data loaded in startAccountsListener: $accountsList") // Thêm log
             }
 
             override fun onCancelled(error: DatabaseError) {
-                Log.e("AppViewModel", "Error reading accounts: ${error.message}")
+                Log.e("AppViewModel", "Error reading account: ${error.message}")
             }
         })
     }
@@ -245,7 +243,26 @@ class AppViewModel(
         super.onCleared()
     }
 
+    private fun stopListeners() {
+        currentUserId?.let { uid ->
+            database.getReference("users").child(uid).removeEventListener(userListener ?: return@let)
+            database.getReference("users").child(uid).child("transactionsBE").child("expense")
+                .removeEventListener(expenseTransactionsListener ?: return@let)
+            database.getReference("users").child(uid).child("transactionsBE").child("income")
+                .removeEventListener(incomeTransactionsListener ?: return@let)
+            database.getReference("users").child(uid).child("accounts").removeEventListener(accountsListener ?: return@let)
+            database.getReference("users").child(uid).child("budgets").removeEventListener(budgetsListener ?: return@let)
+            Log.d("AppViewModel", "Listeners removed for user: $uid")
+        }
+        userListener = null
+        expenseTransactionsListener = null
+        incomeTransactionsListener = null
+        accountsListener = null
+        budgetsListener = null
+    }
+
     fun logout() {
+        stopListeners() // Thêm dòng này
         _currentUser.value = null
         _isLoggedIn.value = false
         _totalExpense.value = 0.0

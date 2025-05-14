@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,7 +26,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -37,14 +37,46 @@ import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.NavigationItem
+import com.example.mainproject.viewModel.AppViewModel
 import com.example.mainproject.viewModel.EditProfileViewModel
+import kotlinx.coroutines.delay
 
 @Composable
-fun ProfileScreen(navController: NavController, viewModel: EditProfileViewModel = viewModel()) {
+fun ProfileScreen(
+    navController: NavController,
+    appViewModel: AppViewModel = viewModel(),
+    editProfileViewModel: EditProfileViewModel = viewModel()
+) {
     val navBackStackEntry = navController.currentBackStackEntryAsState().value
     val currentRoute = navBackStackEntry?.destination?.route
-    val userInfoState = viewModel.userInfo.collectAsState()
+    val userInfoState = editProfileViewModel.userInfo.collectAsState()
     val userInfo = userInfoState.value
+
+    val logoutSuccessState = editProfileViewModel.logoutSuccess.collectAsState()
+    val logoutErrorState = editProfileViewModel.logoutError.collectAsState()
+
+    // Theo dõi trạng thái logout thành công và điều hướng
+    if (logoutSuccessState.value) {
+        LaunchedEffect(Unit) {
+            navController.navigate(route = Routes.SIGN_IN) {
+                popUpTo(navController.graph.id) {
+                    inclusive = true
+                }
+                launchSingleTop = true
+            }
+            editProfileViewModel.resetLogoutState() // Reset trạng thái sau khi điều hướng
+        }
+    }
+
+    // Hiển thị thông báo lỗi logout nếu có
+    logoutErrorState.value?.let { errorMessage ->
+        // Đây là một ví dụ đơn giản, bạn có thể sử dụng Dialog hoặc Snackbar để hiển thị lỗi tốt hơn
+        Text(text = "Lỗi đăng xuất: $errorMessage", color = Color.Red)
+        LaunchedEffect(errorMessage) {
+            delay(3000) // Hiển thị lỗi trong 3 giây rồi reset
+            editProfileViewModel.resetLogoutState()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -74,7 +106,11 @@ fun ProfileScreen(navController: NavController, viewModel: EditProfileViewModel 
                     }
                 )
                 Text("Profile", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
-                Icon(Icons.Default.Notifications, contentDescription = "Notification", tint = Color.White)
+                Icon(
+                    Icons.Default.Notifications,
+                    contentDescription = "Notification",
+                    tint = Color.White
+                )
             }
         }
 
@@ -105,13 +141,44 @@ fun ProfileScreen(navController: NavController, viewModel: EditProfileViewModel 
                 )
                 Spacer(modifier = Modifier.height(24.dp))
 
-                ProfileOption(icon = Icons.Default.Person, title = "Edit Profile") {
-                    navController.navigate(Routes.EDIT_PROFILE)
-                }
-                ProfileOption(icon = Icons.Default.Settings, title = "Setting") {
-                    navController.navigate(Routes.SETTINGS)
-                }
-                ProfileOption(icon = Icons.Default.Logout, title = "Logout")
+                // Edit Profile Option
+                ProfileOption(
+                    icon = Icons.Default.Person,
+                    title = "Edit Profile",
+                    onClick = {
+                        navController.navigate(Routes.EDIT_PROFILES) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+
+                // Settings Option
+                ProfileOption(
+                    icon = Icons.Default.Settings,
+                    title = "Bank",
+                    onClick = {
+                        navController.navigate(Routes.SAVE_BANK) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+
+                // Logout Option
+                ProfileOption(
+                    icon = Icons.Default.Logout,
+                    title = "Logout",
+                    onClick = {
+                        // Gọi hàm logout đã sửa trong EditProfileViewModel
+                        editProfileViewModel.logout {
+                            navController.navigate(route = Routes.SIGN_IN) {
+                                popUpTo(navController.graph.id) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                )
             }
         }
 
@@ -156,7 +223,11 @@ fun ProfileScreen(navController: NavController, viewModel: EditProfileViewModel 
 }
 
 @Composable
-fun ProfileOption(icon: ImageVector, title: String, onClick: (() -> Unit)? = null) {
+fun ProfileOption(
+    icon: ImageVector,
+    title: String,
+    onClick: (() -> Unit)? = null
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -167,21 +238,13 @@ fun ProfileOption(icon: ImageVector, title: String, onClick: (() -> Unit)? = nul
             .clickable { onClick?.invoke() }
             .padding(12.dp)
     ) {
-        Icon(imageVector = icon, contentDescription = title, tint = Color(0xFF3498DB), modifier = Modifier.size(28.dp))
+        Icon(
+            imageVector = icon,
+            contentDescription = title,
+            tint = Color(0xFF3498DB),
+            modifier = Modifier.size(28.dp)
+        )
         Spacer(modifier = Modifier.width(16.dp))
         Text(text = title, fontSize = 16.sp)
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProfilePreview() {
-    // Preview without NavController and ViewModel
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
-        Text("Preview không có NavController hoặc ViewModel")
     }
 }

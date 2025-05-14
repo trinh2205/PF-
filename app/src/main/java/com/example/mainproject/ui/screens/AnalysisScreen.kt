@@ -3,6 +3,7 @@ package com.example.mainproject.ui.screens
 //noinspection SuspiciousImport
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,21 +45,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.mainproject.FireBase.FirebaseAnalysisService
 import com.example.mainproject.data.repository.AnalysisRepository
+import com.example.mainproject.data.repository.IncomeExpenseSummary
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.CalendarBar
 import com.example.mainproject.ui.components.NavigationItem
 import com.example.mainproject.ui.viewmodel.AnalysisViewModel
+import com.example.mainproject.ui.viewmodel.ChartBarData
 import com.example.mainproject.viewModel.AnalysisViewModelFactory
 import com.example.mainproject.viewModel.AppViewModel
 import com.example.mainproject.viewModel.AppViewModelFactory
+import com.google.firebase.firestore.FirebaseFirestore
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -88,17 +93,15 @@ fun AnalysisScreen(navController: NavController) {
 fun AnalysisContent(
     onCalendarClick: () -> Unit,
     navController: NavController,
-    firebaseAnalysisService: FirebaseAnalysisService = remember { FirebaseAnalysisService() },
-    analysisRepository: AnalysisRepository = remember(firebaseAnalysisService) { AnalysisRepository(firebaseAnalysisService) },
+    analysisRepository: AnalysisRepository = remember { AnalysisRepository() },
     viewModel: AnalysisViewModel = viewModel(factory = AnalysisViewModelFactory(analysisRepository)),
     currentRoute: String?,
     AppViewModel: AppViewModel = viewModel(factory = AppViewModelFactory(auth))
 ) {
     val totalBalance by AppViewModel.totalBalance.collectAsState()
     val totalExpense by AppViewModel.totalExpense.collectAsState()
-    val expenseBudgetProgress by viewModel.expenseBudgetProgress.collectAsState(initial = null)
-    val expenseBudgetTotal by viewModel.expenseBudgetTotal.collectAsState(initial = "Loading...")
     val formatter = NumberFormat.getCurrencyInstance(Locale("vi", "VN"))
+
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
@@ -148,7 +151,7 @@ fun AnalysisContent(
                         Icons.Default.Notifications,
                         contentDescription = null,
                         tint = Color.White,
-                        modifier = Modifier.clickable { onCalendarClick() } // Bấm vào icon Calendar
+                        modifier = Modifier.clickable(onClick = onCalendarClick)
                     )
                 }
 
@@ -191,60 +194,19 @@ fun AnalysisContent(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(20.dp)
-                        .padding(horizontal = 40.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFFE6FFF9))
-                ) {
-                    BudgetProgressBar(
-                        progress = expenseBudgetProgress
-                    )
-                    Text(
-                        text = expenseBudgetTotal.toString(),
-                        color = Color.Black,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 16.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(5.dp))
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 40.dp),
-                    horizontalArrangement = Arrangement.Start,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = true,
-                        onCheckedChange = {}
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        "30% Of Your Expenses, Looks Good.",
-                        color = Color.Black,
-                        fontSize = 14.sp
-                    )
-                }
+                // Loại bỏ BudgetProgressBar và Checkbox vì không liên quan đến biểu đồ chính
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Box(modifier = Modifier.weight(1f)) {
                     AnalysisBackgroundBar(
-                        onCalendarClick = onCalendarClick, // Truyền sự kiện click tiếp xuống
-                        viewModel = viewModel, // THÊM
+                        onCalendarClick = onCalendarClick,
+                        viewModel = viewModel,
                     )
                 }
 
                 Box(modifier = Modifier.background(Color.White)) {
-
+                    // Phần này có thể chứa các thông tin hoặc thống kê khác nếu cần
                 }
             }
         }
@@ -283,8 +245,7 @@ fun BudgetProgressBar(progress: Float?) {
 @Composable
 fun AnalysisBackgroundBar(onCalendarClick: () -> Unit, viewModel: AnalysisViewModel) {
     val tabs = remember { listOf("Daily", "Weekly", "Monthly", "Year") }
-    var selectedTab by remember { mutableStateOf("Year") }
-    val currentChartData by viewModel.chartData.collectAsState(initial = Pair(emptyList(), emptyList()))
+    val selectedTab by viewModel.selectedChartTab.collectAsState() // Lấy selectedTab từ ViewModel
 
     Box(
         modifier = Modifier
@@ -298,19 +259,17 @@ fun AnalysisBackgroundBar(onCalendarClick: () -> Unit, viewModel: AnalysisViewMo
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
-            TabSwitcher(tabs = tabs, selectedTab = selectedTab) { selectedTab = it }
+            TabSwitcher(tabs = tabs, selectedTab = selectedTab) {
+                viewModel.setSelectedChartTab(it) // Gọi hàm trong ViewModel khi tab thay đổi
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
             IncomeExpenseChartSection(
-                selectedTab = selectedTab,
+                selectedTab = selectedTab, // Truyền selectedTab xuống
                 onCalendarClick = onCalendarClick,
-                chartData = currentChartData
+                chartData = viewModel.chartData.collectAsState().value // Lấy chartData từ ViewModel
             )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            IncomeExpenseSummaryRow(viewModel = viewModel)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -350,9 +309,9 @@ fun TabSwitcher(tabs: List<String>, selectedTab: String, onTabSelected: (String)
 
 @Composable
 fun IncomeExpenseChartSection(
-    selectedTab: String,
+    selectedTab: String, // Nhận selectedTab làm tham số
     onCalendarClick: () -> Unit,
-    chartData: Pair<List<Double>, List<Double>>
+    chartData: List<ChartBarData> // Cập nhật kiểu dữ liệu tại đây
 ) {
     Box(
         modifier = Modifier
@@ -368,7 +327,7 @@ fun IncomeExpenseChartSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Income & Expenses",
+                    text = "Income & Expenses", // Bạn có thể thay đổi tiêu đề dựa trên selectedTab nếu muốn
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color(0xFF052224)
@@ -392,109 +351,68 @@ fun IncomeExpenseChartSection(
                     .background(Color.White, shape = RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                BarChart(selectedTab = selectedTab, chartData = chartData)
+                BarChart(selectedTab = selectedTab, chartData = chartData) // Truyền selectedTab xuống BarChart
             }
         }
     }
 }
 
 @Composable
-fun BarChart(selectedTab: String, chartData: Pair<List<Double>, List<Double>>) {
-    val incomeData = chartData.first
-    val expenseData = chartData.second
-
-    val labels = remember(selectedTab, incomeData.size, expenseData.size) {
-        when (selectedTab) {
-            "Weekly" -> (1..incomeData.size.coerceAtLeast(expenseData.size)).map { "W$it" }
-            "Monthly" -> getMonthLabels(incomeData.size.coerceAtLeast(expenseData.size))
-            "Year" -> (2020 until 2020 + incomeData.size.coerceAtLeast(expenseData.size)).map { it.toString().takeLast(2) }
-            else -> (1..incomeData.size.coerceAtLeast(expenseData.size)).map { "D$it" } // Default to Daily-like labels
-        }
+fun BarChart(selectedTab: String, chartData: List<ChartBarData>) {
+    val barColorExpense = Color.Red
+    val barColorIncome = Color.Green
+    val spacing = 10.dp
+    val maxY = remember(chartData) {
+        val maxVal = chartData.maxOfOrNull { maxOf(it.expense, it.income) } ?: 0.0f
+        maxVal.coerceAtLeast(1.0f) // Ép kiểu về Float
     }
+    val density = LocalDensity.current
 
-    val combinedData = incomeData.zip(expenseData) { income, expense -> maxOf(income, expense) }
-    val maxValue = combinedData.maxOrNull()?.coerceAtLeast(1.0) ?: 1.0
-
-    val barColors = listOf(Color(0xFF00C2A8), Color(0xFF007BFF)) // Income (Green), Expense (Blue)
-    val chartHeight = 120.dp
-    val barWidth = 12.dp
-    val spaceBetweenBars = 8.dp
-    val barCornerRadius = 4.dp
-    val labelTextColor = Color.Black.copy(alpha = 0.6f)
-
-    val textMeasurer = rememberTextMeasurer()
-
-    Column(
+    Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .height(160.dp)
+            .padding(horizontal = 16.dp) // Sử dụng padding ngang riêng
+            .padding(bottom = 24.dp)    // Sử dụng padding dưới riêng
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(chartHeight),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            incomeData.indices.forEach { index ->
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(spaceBetweenBars)
-                ) {
-                    // Income Bar
-                    if (index < incomeData.size) {
-                        val incomeValue = incomeData[index]
-                        val incomeHeightRatio = (incomeValue.toFloat() / maxValue.toFloat()).coerceIn(0f, 1f)
-                        val animatedIncomeHeight by animateDpAsState(
-                            targetValue = chartHeight * incomeHeightRatio,
-                            animationSpec = tween(durationMillis = 300)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(barWidth)
-                                .height(animatedIncomeHeight)
-                                .clip(RoundedCornerShape(topStart = barCornerRadius, topEnd = barCornerRadius))
-                                .background(barColors.getOrNull(0) ?: Color.Gray)
-                        )
-                    }
+        val innerWidth = size.width - (spacing * (chartData.size + 1)).toPx()
+        val barWidth = innerWidth / chartData.size
 
-                    // Expense Bar
-                    if (index < expenseData.size) {
-                        val expenseValue = expenseData[index]
-                        val expenseHeightRatio = (expenseValue.toFloat() / maxValue.toFloat()).coerceIn(0f, 1f)
-                        val animatedExpenseHeight by animateDpAsState(
-                            targetValue = chartHeight * expenseHeightRatio,
-                            animationSpec = tween(durationMillis = 300)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .width(barWidth)
-                                .height(animatedExpenseHeight)
-                                .clip(RoundedCornerShape(topStart = barCornerRadius, topEnd = barCornerRadius))
-                                .background(barColors.getOrNull(1) ?: Color.LightGray)
-                        )
-                    }
-                }
+        chartData.forEachIndexed { index, data ->
+            val xOffset = (index + 1) * spacing.toPx() + index * barWidth
+
+            // Tính toán chiều cao cột chi tiêu
+            val expenseHeight = (data.expense / maxY) * size.height
+
+            // Vẽ cột chi tiêu
+            drawRect(
+                color = barColorExpense,
+                topLeft = Offset(x = xOffset.toFloat(), y = (size.height - expenseHeight).toFloat()),
+                size = Size(width = (barWidth / 2).toFloat(), height = expenseHeight.toFloat())
+            )
+
+            // Tính toán chiều cao cột thu nhập
+            val incomeHeight = (data.income / maxY) * size.height
+
+            // Vẽ cột thu nhập
+            drawRect(
+                color = barColorIncome,
+                topLeft = Offset(x = (xOffset + barWidth / 2).toFloat(), y = (size.height - incomeHeight).toFloat()),
+                size = Size(width = (barWidth / 2).toFloat(), height = incomeHeight.toFloat())
+            )
+
+            // Vẽ label
+            val textPaint = android.graphics.Paint().apply {
+                color = android.graphics.Color.BLACK
+                textSize = with(density) { 12.dp.toPx() }
+                textAlign = android.graphics.Paint.Align.CENTER
             }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.Top
-        ) {
-            labels.forEach { label ->
-                Text(
-                    text = label,
-                    color = labelTextColor,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f),
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 1
+            drawIntoCanvas { canvas ->
+                canvas.nativeCanvas.drawText(
+                    data.label,
+                    xOffset + barWidth / 2,
+                    size.height + with(density) { 16.dp.toPx() },
+                    textPaint
                 )
             }
         }
@@ -506,9 +424,16 @@ private fun getMonthLabels(count: Int): List<String> {
     val currentMonth = java.util.Calendar.getInstance().get(java.util.Calendar.MONTH)
     return (0 until count).map { months[(currentMonth - count + 1 + it + 12) % 12] }
 }
+
+private fun getDayLabels(count: Int): List<String> {
+    val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val calendar = java.util.Calendar.getInstance()
+    val currentDayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK) // Sunday=1, Monday=2, ... Saturday=7
+    return (0 until count).map { days[(currentDayOfWeek - count + it + 7) % 7] }
+}
 @Composable
 fun IncomeExpenseSummaryRow(viewModel: AnalysisViewModel) {
-    val incomeExpenseSummary by viewModel.incomeExpenseSummary.collectAsState(initial = Pair("Loading...", "Loading..."))
+    val incomeExpenseSummary by viewModel.incomeExpenseSummary.collectAsState(initial = IncomeExpenseSummary(0.0, 0.0))
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
@@ -517,14 +442,14 @@ fun IncomeExpenseSummaryRow(viewModel: AnalysisViewModel) {
             Icon(Icons.Filled.CallReceived, contentDescription = "Income", tint = Color(0xFF00B894))
             Spacer(modifier = Modifier.height(4.dp))
             Text("Income", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(incomeExpenseSummary.first, color = Color.Black, fontSize = 16.sp)
+            Text(NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(incomeExpenseSummary.totalIncome), color = Color.Black, fontSize = 16.sp)
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(Icons.Filled.CallMade, contentDescription = "Expense", tint = Color(0xFF0984E3))
             Spacer(modifier = Modifier.height(4.dp))
             Text("Expense", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            Text(incomeExpenseSummary.second, color = Color(0xFF0984E3), fontSize = 16.sp)
+            Text(NumberFormat.getCurrencyInstance(Locale("vi", "VN")).format(incomeExpenseSummary.totalExpense), color = Color(0xFF0984E3), fontSize = 16.sp)
         }
     }
 }

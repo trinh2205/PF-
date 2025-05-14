@@ -28,6 +28,7 @@ import com.example.mainproject.data.model.Category
 import com.example.mainproject.data.model.Expense
 import com.example.mainproject.R
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Close
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.util.Locale
@@ -299,55 +300,75 @@ fun CategoryDetailScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(categoryExpenses) { expense ->
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 8.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                                    elevation = CardDefaults.cardElevation(4.dp)
-                                ) {
-                                    Row(
+                                    Card(
                                         modifier = Modifier
-                                            .padding(16.dp)
-                                            .fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 8.dp),
+                                        shape = RoundedCornerShape(16.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                                        elevation = CardDefaults.cardElevation(4.dp)
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(40.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(Color(0xFF3498DB)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = iconVector,
-                                                    contentDescription = expense.title,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
+                                        Row(
+                                            modifier = Modifier
+                                                .padding(16.dp)
+                                                .fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(40.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(Color(0xFF3498DB)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    // Nút xóa ở góc trên bên phải của Box
+                                                    IconButton(
+                                                        onClick = {
+                                                            // Gọi hàm để xóa expense
+                                                            Log.d("CategoryDetailScreen", "Nút xóa chi phí được nhấn cho ID: ${expense.id}")
+                                                            viewModel.deleteExpense(ListCategoryId, expense.id)
+                                                        },
+                                                        modifier = Modifier
+                                                            .align(Alignment.TopEnd)
+                                                            .padding(4.dp)
+                                                            .size(24.dp) // Điều chỉnh kích thước nút xóa nếu cần
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Close,
+                                                            contentDescription = "Xóa chi phí",
+                                                            tint = Color.Red,
+                                                            modifier = Modifier.size(16.dp) // Điều chỉnh kích thước icon bên trong nút nếu cần
+                                                        )
+                                                    }
+                                                    Icon(
+                                                        imageVector = iconVector,
+                                                        contentDescription = expense.title,
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(expense.title, fontWeight = FontWeight.Bold)
+                                                    Text(
+                                                        text = expense.date,
+                                                        fontSize = 12.sp,
+                                                        color = Color.Gray
+                                                    )
+                                                }
                                             }
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column {
-                                                Text(expense.title, fontWeight = FontWeight.Bold)
+                                            Column(horizontalAlignment = Alignment.End) {
                                                 Text(
-                                                    text = expense.date,
-                                                    fontSize = 12.sp,
-                                                    color = Color.Gray
+                                                    text = "-${formatter.format(expense.amount)}",
+                                                    color = Color(0xFFFF3B30),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 16.sp
                                                 )
                                             }
+
                                         }
-                                        Column(horizontalAlignment = Alignment.End) {
-                                            Text(
-                                                text = "-${formatter.format(expense.amount)}",
-                                                color = Color(0xFFFF3B30),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 16.sp
-                                            )
-                                        }
-                                    }
                                 }
                             }
                         }

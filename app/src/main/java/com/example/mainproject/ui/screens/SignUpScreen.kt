@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.viewModel.AuthViewModel
 import kotlinx.coroutines.launch
@@ -231,9 +232,7 @@ fun SignUpForm(
 
         if (state.signUpState.isSuccess) {
             LaunchedEffect(state.signUpState) {
-                val email = state.signUpState.email ?: ""
-                val password = state.signUpState.password ?: ""
-                navController.navigate("signIn/$email/$password") {
+                navController.navigate(Routes.SIGN_IN) { // Hoặc navController.navigate("signIn")
                     popUpTo(navController.graph.startDestinationId)
                     launchSingleTop = true
                 }

@@ -1,5 +1,8 @@
 package com.example.mainproject.data.repository
 
+import android.util.Log
+import com.example.mainproject.data.model.Account
+import com.example.mainproject.data.model.AccountBank
 import com.example.mainproject.data.model.UserInfo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
@@ -48,4 +51,94 @@ class UserRepository {
             Result.failure(e)
         }
     }
+
+    fun getAccount(userId: String): Flow<Account?> = callbackFlow {
+        val accountRef = database.child("users").child(userId).child("accounts")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val account = snapshot.getValue(Account::class.java)
+                trySend(account).isSuccess
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+        accountRef.addValueEventListener(listener)
+        awaitClose { accountRef.removeEventListener(listener) }
+    }
+
+    fun updateAccountBalance(account: Account, accountId: String, callback: (Boolean, String?) -> Unit) {
+        database.child("users").child(account.userId).child("account").child(accountId)
+            .setValue(account)
+            .addOnCompleteListener { task ->
+                callback(task.isSuccessful, task.exception?.message)
+            }
+    }
+
+    suspend fun logout(): Result<Unit> {
+        return try {
+            auth.signOut()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    // Cập nhật hàm saveAccountBankInfo để lưu trực tiếp vào node BankAccount
+    fun saveAccountBankInfo(accountBank: AccountBank, callback: (Boolean, String?) -> Unit) {
+        val userId = accountBank.userId
+        database.child("users").child(userId).child("BankAccount")
+            .setValue(accountBank)
+            .addOnCompleteListener { task ->
+                callback(task.isSuccessful, task.exception?.message)
+            }
+    }
+
+    // Cập nhật hàm getAccountBankInfo để đọc trực tiếp từ node BankAccount
+    fun getAccountBankInfo(userId: String): Flow<AccountBank?> = callbackFlow {
+        val accountBankRef = database.child("users").child(userId).child("BankAccount")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                Log.d("FirebaseData", "BankAccount snapshot: ${snapshot.value}")
+                val accountBank = snapshot.getValue(AccountBank::class.java)
+                trySend(accountBank).isSuccess
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+        accountBankRef.addValueEventListener(listener)
+        awaitClose { accountBankRef.removeEventListener(listener) }
+    }
+
+    fun getAccountwithoutAccountId(userId: String): Flow<Account?> = callbackFlow { // Không cần accountId
+        val accountRef = database.child("users").child(userId).child("account")
+
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val account = snapshot.getValue(Account::class.java)
+                trySend(account).isSuccess
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                close(error.toException())
+            }
+        }
+        accountRef.addValueEventListener(listener)
+        awaitClose { accountRef.removeEventListener(listener) }
+    }
+
+    fun updateAccountBalance(account: Account, callback: (Boolean, String?) -> Unit) { // Không cần accountId
+        database.child("users").child(account.userId).child("accounts").setValue(account)
+            .addOnCompleteListener { task ->
+                callback(task.isSuccessful, task.exception?.message)
+            }
+    }
+
+    // Hàm để lấy tham chiếu đến node BankAccount của người dùng
+    fun getUserBankAccountRef(userId: String) = database.child("users").child(userId).child("BankAccount")
 }

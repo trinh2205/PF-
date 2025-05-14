@@ -1,15 +1,21 @@
 package com.example.mainproject.viewModel
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.mainproject.data.model.UserInfo
 import com.example.mainproject.data.repository.UserRepository
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class EditProfileViewModel(private val userRepository: UserRepository = UserRepository()) : ViewModel() {
+class EditProfileViewModel(
+    private val userRepository: UserRepository,
+    private val appViewModel: AppViewModel, // Nhận AppViewModel
+    private val auth: FirebaseAuth // Nhận FirebaseAuth
+) : ViewModel() {
     private val _userInfo = MutableStateFlow(UserInfo())
     val userInfo: StateFlow<UserInfo> = _userInfo
 
@@ -21,6 +27,12 @@ class EditProfileViewModel(private val userRepository: UserRepository = UserRepo
 
     private val _darkTheme = MutableStateFlow(false)
     val darkTheme: StateFlow<Boolean> = _darkTheme
+
+    private val _logoutSuccess = MutableStateFlow(false)
+    val logoutSuccess: StateFlow<Boolean> = _logoutSuccess
+
+    private val _logoutError = MutableStateFlow<String?>(null)
+    val logoutError: StateFlow<String?> = _logoutError
 
     init {
         loadUserData()
@@ -75,6 +87,44 @@ class EditProfileViewModel(private val userRepository: UserRepository = UserRepo
             viewModelScope.launch {
                 onShowMessage("Vui lòng đăng nhập để xem hồ sơ")
                 onNavigateBack()
+            }
+        }
+    }
+
+    fun logout(onLogoutSuccess: () -> Unit) {
+        viewModelScope.launch {
+            userRepository.logout().fold(
+                onSuccess = {
+                    _logoutSuccess.value = true
+                    _logoutError.value = null
+                    appViewModel.logout() // Gọi hàm logout của AppViewModel để gỡ bỏ listeners
+                    auth.signOut() // Đăng xuất khỏi Firebase Authentication
+                    onLogoutSuccess() // Gọi callback để thông báo cho UI
+                },
+                onFailure = { error ->
+                    _logoutSuccess.value = false
+                    _logoutError.value = error.message
+                }
+            )
+            // Không cần reset userInfo ở đây, AppViewModel có thể quản lý
+        }
+    }
+
+    // Bạn có thể thêm một hàm để reset trạng thái logout nếu cần
+    fun resetLogoutState() {
+        _logoutSuccess.value = false
+        _logoutError.value = null
+    }
+
+    companion object {
+        fun provideFactory(
+            userRepository: UserRepository,
+            appViewModel: AppViewModel,
+            auth: FirebaseAuth
+        ): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return EditProfileViewModel(userRepository, appViewModel, auth) as T
             }
         }
     }

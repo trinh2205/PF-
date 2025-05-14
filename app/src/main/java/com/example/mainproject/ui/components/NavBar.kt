@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Layers
@@ -48,7 +49,8 @@ data class NavigationItem(
             NavigationItem(icon = Icons.Default.BarChart, route = Routes.ANALYTICS),
             NavigationItem(icon = Icons.Default.SwapHoriz, route = Routes.TRANSACTION),
             NavigationItem(icon = Icons.Default.Layers, route = Routes.CATEGORIES),
-            NavigationItem(icon = Icons.Default.Person, route = Routes.PROFILE)
+            NavigationItem(icon = Icons.Default.Person, route = Routes.PROFILE),
+            NavigationItem(icon = Icons.Default.AccountBalance, route = Routes.BANK, label = "Ngân hàng") // Thêm item cho BankScreen
         )
     }
 }
