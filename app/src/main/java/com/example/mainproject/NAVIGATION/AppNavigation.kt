@@ -1,5 +1,6 @@
 package com.example.mainproject.NAVIGATION
 
+import android.util.Log
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.runtime.Composable
@@ -10,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
+
 import androidx.navigation.navArgument
 import com.example.mainproject.data.model.ListCategories
 import com.example.mainproject.data.repository.AuthRepository
@@ -30,6 +32,7 @@ import com.example.mainproject.ui.screens.SaveBankScreen
 import com.example.mainproject.ui.screens.SignIn
 import com.example.mainproject.ui.screens.SignUp
 import com.example.mainproject.ui.screens.SplashScreen
+import com.example.mainproject.ui.screens.TransactionScreen
 //import com.example.mainproject.ui.screens.TransactionHistoryScreen
 import com.example.mainproject.viewModel.AppViewModel
 import com.example.mainproject.viewModel.AppViewModelFactory
@@ -78,6 +81,8 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
     if (FirebaseAuth.getInstance().currentUser != null)
     {
         startDestination = Routes.HOME
+        Log.e("currnet user id: ", " FDS" + FirebaseAuth.getInstance().currentUser?.email)
+
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -96,15 +101,12 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.MAIN_SCREEN) {
             MainScreen(navController = navController)
         }
-        composable("categoryDetail/{ListCategoryId}") { backStackEntry ->
-            val ListCategoryId = backStackEntry.arguments?.getString("ListCategoryId") ?: ""
-            CategoryDetailScreen(
-                navController,
-                viewModel = transactionViewModel,
-                ListCategoryId = ListCategoryId,
-                onBack = { navController.popBackStack() },
-                onAddExpenseClick = { navController.navigate("addExpense/$ListCategoryId") }
-            )
+        composable(
+            "categoryDetail/{categoryId}",
+            arguments = listOf(navArgument("categoryId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
+            CategoryDetailScreen(navController = navController, listCategoryId = categoryId)
         }
 
         composable(route = Routes.BANK) {
@@ -155,9 +157,9 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
 //            }
 //             ItemScreen(navController = navController, listItem = listItem, viewModel = transactionViewModel)
 //        }
-//        composable(route = Routes.TRANSACTION) {
-//            TransactionHistoryScreen(navController = navController)
-//        }
+        composable(route = Routes.TRANSACTION) {
+            TransactionScreen(navController = navController)
+        }
         composable(route = Routes.NOTIFICATION) {
             NotificationScreen(navController = navController, appViewModel = appViewModel)
         }

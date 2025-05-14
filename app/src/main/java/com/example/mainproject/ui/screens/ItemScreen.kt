@@ -264,7 +264,7 @@ fun ItemScreen(
                                             .background(Color(0xFF4C9CDA)),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        androidx.compose.material.Icon(
+                                        Icon(
                                             imageVector = categoryIcons[listItem.icon] ?: Icons.Filled.QuestionMark,
                                             contentDescription = listItem.name,
                                             tint = Color.White

@@ -14,7 +14,7 @@ class TransactionViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(TransactionViewModel::class.java)) {
-            return TransactionViewModel(notificationRepository, userId) as T
+            return TransactionViewModel() as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -1,13 +1,13 @@
 package com.example.mainproject.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,48 +16,56 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.mainproject.viewModel.TransactionViewModel
-import com.example.mainproject.ui.components.BottomNavigationBar
-import com.example.mainproject.data.model.Category
-import com.example.mainproject.data.model.Expense
 import com.example.mainproject.R
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.filled.Close
+import com.example.mainproject.data.model.Expense
+import com.example.mainproject.ui.components.BottomNavigationBar
+import com.example.mainproject.viewModel.AppViewModel
+import com.google.firebase.auth.FirebaseAuth
 import java.text.NumberFormat
 import java.time.LocalDate
-import java.util.Locale
+import java.time.format.DateTimeFormatter
+import java.util.*
+
+val categoryIcons = mapOf(
+    "Ăn uống" to Icons.Filled.Restaurant,
+    "Công nghệ" to Icons.Filled.Android,
+    "Văn học" to Icons.Filled.Book,
+    "Thời trang" to Icons.Filled.Checkroom,
+    "Đời sống" to Icons.Filled.Home,
+    "Giải trí" to Icons.Filled.PlayArrow,
+    "Khám phá" to Icons.Filled.Explore,
+    "Học tập" to Icons.Filled.School,
+    "Chăm sóc bản thân" to Icons.Filled.Spa
+)
 
 @Composable
 fun CategoryDetailScreen(
     navController: NavController,
-    ListCategoryId: String,
-    viewModel: TransactionViewModel = viewModel(),
-    onBack: () -> Unit,
-    onAddExpenseClick: () -> Unit
+    listCategoryId: String,
+    viewModel: AppViewModel = viewModel(factory = AppViewModel.provideFactory(auth = FirebaseAuth.getInstance())),
+    onBack: () -> Unit = { navController.popBackStack() }
 ) {
-    val transactionsBE by viewModel.transactionsBE.collectAsState()
-    val categoriesMap by viewModel.categories.collectAsState()
-    val currentCategory = remember(categoriesMap) {
-        categoriesMap[ListCategoryId]
-    }
-    val categoryExpenses = remember(transactionsBE) {
-        transactionsBE.values.filter { it.categoryId == ListCategoryId && it.type == "expense" }
-            .map {
-                Expense(
-                    id = it.id,
-                    title = it.title,
-                    amount = it.amount * -1, // Chuyển lại thành số dương để hiển thị
-                    date = it.date,
-                    categoryId = it.categoryId
-                )
-            }
-    }
+    val transactionsBE by viewModel.allTransactions.collectAsState()
+    val listCategories by viewModel.listCategories.collectAsState()
+    val currentCategory = listCategories.find { it.id == listCategoryId }
+    val categoryExpenses = transactionsBE
+        .filter { it.categoryId == listCategoryId && it.type == "expense" }
+        .map {
+            Expense(
+                id = it.id,
+                title = it.title,
+                amount = it.amount, // Amount is positive in Firebase
+                date = it.date,
+                categoryId = it.categoryId,
+                message = it.message
+            )
+        }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -65,26 +73,25 @@ fun CategoryDetailScreen(
     val totalBalance by viewModel.totalBalance.collectAsState()
     val totalExpense by viewModel.totalExpense.collectAsState()
     var expenseAnalysisChecked by remember { mutableStateOf(true) }
-    val iconVector = categoryIcons[currentCategory?.iconId] ?: Icons.Filled.Help
+    val iconVector = categoryIcons[currentCategory?.icon] ?: Icons.Filled.Help
     var showDialog by remember { mutableStateOf(false) }
+
+    // Dialog state
     var newExpenseTitle by remember { mutableStateOf("") }
     var newExpenseAmount by remember { mutableStateOf("") }
+    var newExpenseMessage by remember { mutableStateOf("") }
     var amountError by remember { mutableStateOf<String?>(null) }
-    var selectedCategoryId by remember { mutableStateOf(ListCategoryId) } // Mặc định chọn category hiện tại
-
-    var newlyCreatedCategoryId by remember { mutableStateOf<String?>(null) }
-    var categoryCreated by remember { mutableStateOf(false) }
 
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Add New Expense") },
+            title = { Text("Thêm chi phí mới") },
             text = {
                 Column {
                     OutlinedTextField(
                         value = newExpenseTitle,
                         onValueChange = { newExpenseTitle = it },
-                        label = { Text("Title") },
+                        label = { Text("Tiêu đề") },
                         singleLine = true
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -95,18 +102,24 @@ fun CategoryDetailScreen(
                                 newExpenseAmount = input
                                 amountError = null
                             } else {
-                                amountError = "Please enter a valid number"
+                                amountError = "Vui lòng nhập số hợp lệ"
                             }
                         },
-                        label = { Text("Amount") },
+                        label = { Text("Số tiền") },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = amountError != null,
                         supportingText = {
                             amountError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                         }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newExpenseMessage,
+                        onValueChange = { newExpenseMessage = it },
+                        label = { Text("Ghi chú") },
+                        singleLine = false,
+                        maxLines = 3
                     )
                 }
             },
@@ -116,29 +129,29 @@ fun CategoryDetailScreen(
                         val amount = newExpenseAmount.toDoubleOrNull() ?: 0.0
                         if (newExpenseTitle.isNotBlank() && amount > 0 && amountError == null) {
                             val newExpense = Expense(
+                                id = UUID.randomUUID().toString(),
+                                categoryId = listCategoryId,
                                 title = newExpenseTitle,
                                 amount = amount,
-                                date = LocalDate.now().toString(),
-                                categoryId = selectedCategoryId
+                                date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                                message = newExpenseMessage
                             )
-
-                            Log.d("AddExpenseUI", "Adding expense to Category ID: $selectedCategoryId")
-                            viewModel.addExpense(ListCategoryId, selectedCategoryId, newExpense)
+                            viewModel.addExpense(listCategoryId, newExpense)
                             newExpenseTitle = ""
                             newExpenseAmount = ""
+                            newExpenseMessage = ""
                             amountError = null
                             showDialog = false
-                        } else {
-                            // Xử lý lỗi input
                         }
-                    }
+                    },
+                    enabled = newExpenseTitle.isNotBlank() && newExpenseAmount.isNotBlank() && amountError == null
                 ) {
-                    Text("Add")
+                    Text("Thêm")
                 }
             },
             dismissButton = {
                 OutlinedButton(onClick = { showDialog = false }) {
-                    Text("Cancel")
+                    Text("Hủy")
                 }
             }
         )
@@ -147,7 +160,7 @@ fun CategoryDetailScreen(
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
-                selectedItem = currentRoute ?: com.example.mainproject.ui.components.NavigationItem.DefaultItems.first().route,
+                selectedItem = currentRoute ?: "default_route", // Replace with actual default route
                 onItemClick = { item ->
                     navController.navigate(item.route) {
                         launchSingleTop = true
@@ -155,7 +168,7 @@ fun CategoryDetailScreen(
                     }
                 }
             )
-        },
+        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -197,7 +210,7 @@ fun CategoryDetailScreen(
                         fontSize = 14.sp
                     )
                     Text(
-                        text = "${formatter.format(totalExpense)}",
+                        text = formatter.format(totalExpense),
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                         color = Color(0xFFFF3B30)
@@ -273,7 +286,7 @@ fun CategoryDetailScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("No expenses found.", fontSize = 16.sp, color = Color.Gray)
+                        Text("Chưa có chi phí nào.", fontSize = 16.sp, color = Color.Gray)
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = { showDialog = true },
@@ -281,7 +294,7 @@ fun CategoryDetailScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                         ) {
-                            Text("Add expense")
+                            Text("Thêm chi phí")
                         }
                     }
                 } else {
@@ -292,7 +305,7 @@ fun CategoryDetailScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp)
                         ) {
-                            Text("Add expense")
+                            Text("Thêm chi phí")
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         LazyColumn(
@@ -300,75 +313,82 @@ fun CategoryDetailScreen(
                             modifier = Modifier.fillMaxSize()
                         ) {
                             items(categoryExpenses) { expense ->
-                                    Card(
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Row(
                                         modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 8.dp),
-                                        shape = RoundedCornerShape(16.dp),
-                                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                                        elevation = CardDefaults.cardElevation(4.dp)
+                                            .padding(16.dp)
+                                            .fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
                                         Row(
-                                            modifier = Modifier
-                                                .padding(16.dp)
-                                                .fillMaxWidth(),
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(40.dp)
-                                                        .clip(RoundedCornerShape(8.dp))
-                                                        .background(Color(0xFF3498DB)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    // Nút xóa ở góc trên bên phải của Box
-                                                    IconButton(
-                                                        onClick = {
-                                                            // Gọi hàm để xóa expense
-                                                            Log.d("CategoryDetailScreen", "Nút xóa chi phí được nhấn cho ID: ${expense.id}")
-                                                            viewModel.deleteExpense(ListCategoryId, expense.id)
-                                                        },
-                                                        modifier = Modifier
-                                                            .align(Alignment.TopEnd)
-                                                            .padding(4.dp)
-                                                            .size(24.dp) // Điều chỉnh kích thước nút xóa nếu cần
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Close,
-                                                            contentDescription = "Xóa chi phí",
-                                                            tint = Color.Red,
-                                                            modifier = Modifier.size(16.dp) // Điều chỉnh kích thước icon bên trong nút nếu cần
-                                                        )
-                                                    }
-                                                    Icon(
-                                                        imageVector = iconVector,
-                                                        contentDescription = expense.title,
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(24.dp)
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.width(12.dp))
-                                                Column {
-                                                    Text(expense.title, fontWeight = FontWeight.Bold)
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(40.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(Color(0xFF3498DB)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = iconVector,
+                                                    contentDescription = expense.title,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column {
+                                                Text(expense.title, fontWeight = FontWeight.Bold)
+                                                Text(
+                                                    text = expense.date,
+                                                    fontSize = 12.sp,
+                                                    color = Color.Gray
+                                                )
+                                                if (expense.message.isNotBlank()) {
                                                     Text(
-                                                        text = expense.date,
+                                                        text = expense.message,
                                                         fontSize = 12.sp,
                                                         color = Color.Gray
                                                     )
                                                 }
                                             }
-                                            Column(horizontalAlignment = Alignment.End) {
-                                                Text(
-                                                    text = "-${formatter.format(expense.amount)}",
-                                                    color = Color(0xFFFF3B30),
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 16.sp
+                                        }
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            Text(
+                                                text = "-${formatter.format(expense.amount)}",
+                                                color = Color(0xFFFF3B30),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            IconButton(
+                                                onClick = {
+                                                    viewModel.deleteExpense(expense.id)
+                                                },
+                                                modifier = Modifier.size(24.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Xóa chi phí",
+                                                    tint = Color.Red,
+                                                    modifier = Modifier.size(16.dp)
                                                 )
                                             }
-
                                         }
+                                    }
                                 }
                             }
                         }
