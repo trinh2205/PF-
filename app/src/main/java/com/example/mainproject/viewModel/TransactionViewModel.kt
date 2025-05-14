@@ -12,8 +12,8 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import dagger.hilt.android.UnstableApi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,16 +24,15 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class TransactionViewModel @Inject constructor() : ViewModel() {
     @Inject
-    lateinit var notificationRepository: NotificationRepository
+    var notificationRepository: NotificationRepository = NotificationRepository(
+        FirebaseDatabase.getInstance())
     private val userId: String? = FirebaseAuth.getInstance().currentUser?.uid
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance().reference
@@ -47,6 +46,7 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
     private val _totalExpense = MutableStateFlow(0.0)
     private val _totalBudget = MutableStateFlow(0.0)
     private val _selectedTransactionType = MutableStateFlow("all") // "all", "income", "expense"
+    private val _isLoadingAccount = MutableStateFlow(true) // New flag for account loading state
 
     val userInfo: StateFlow<UserInfo?> = _userInfo.asStateFlow()
     val account: StateFlow<Account?> = _account.asStateFlow()
@@ -57,6 +57,7 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
     val totalBalance: StateFlow<Double> = _totalBalance.asStateFlow()
     val totalExpense: StateFlow<Double> = _totalExpense.asStateFlow()
     val totalBudget: StateFlow<Double> = _totalBudget.asStateFlow()
+    val isLoadingAccount: StateFlow<Boolean> = _isLoadingAccount.asStateFlow()
 
     private val _isLoadingTransactions = MutableStateFlow(true)
     val isLoadingTransactions: StateFlow<Boolean> = _isLoadingTransactions.asStateFlow()
@@ -79,7 +80,6 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
         _selectedTransactionType
     ) { incomes, expenses, type ->
         val unified = mutableListOf<UnifiedTransaction>()
-
         incomes.values.forEach { income ->
             unified.add(
                 UnifiedTransaction(
@@ -93,7 +93,6 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
                 )
             )
         }
-
         expenses.values.forEach { expense ->
             unified.add(
                 UnifiedTransaction(
@@ -107,7 +106,6 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
                 )
             )
         }
-
         unified.filter { transaction ->
             when (type) {
                 "income" -> transaction.type == "income"
@@ -115,13 +113,11 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
                 else -> true // "all"
             }
         }.sortedByDescending { it.date }
-
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-
 
     init {
         if (userId != null) {
@@ -130,9 +126,11 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
             loadListCategories(userId)
             loadBudgets(userId)
             loadTransactionsBE(userId)
+            setupRealtimeListeners(userId)
         } else {
             _userInfo.value = null
             _isLoadingTransactions.value = false
+            _isLoadingAccount.value = false
         }
     }
 
@@ -161,20 +159,37 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
 
     private fun loadAccount(userId: String) {
         database.child("users").child(userId).child("account")
-            .addValueEventListener(object : ValueEventListener {
+            .addListenerForSingleValueEvent(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
-                    _account.value = snapshot.getValue(Account::class.java)
-                    _totalBalance.value = _account.value?.balance ?: 0.0
+                    var account = snapshot.getValue(Account::class.java)
+                    if (account == null) {
+                        // Initialize a default account if none exists
+                        account = Account(balance = 0.0)
+                        database.child("users").child(userId).child("account")
+                            .setValue(account)
+                            .addOnSuccessListener {
+                                Log.d("TransactionViewModel", "Tạo tài khoản mặc định thành công cho user: $userId")
+                            }
+                            .addOnFailureListener { error ->
+                                Log.e("TransactionViewModel", "Lỗi khi tạo tài khoản mặc định: ${error.message}")
+                            }
+                    }
+                    _account.value = account
+                    _totalBalance.value = account.balance ?: 0.0
+                    _isLoadingAccount.value = false
+                    Log.d("TransactionViewModel", "Loaded account with balance: ${_totalBalance.value}")
                 }
+
                 override fun onCancelled(error: DatabaseError) {
                     Log.e("TransactionViewModel", "Lỗi tải Account: ${error.message}")
+                    _isLoadingAccount.value = false
                     _isLoadingTransactions.value = false
                 }
             })
     }
 
     private fun loadListCategories(userId: String) {
-        database.child("users").child(userId).child("listCategories")
+        database.child("users").child(userId).child("ListCategories")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     val newListCategoriesMap = mutableMapOf<String, ListCategories>()
@@ -220,47 +235,35 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
             try {
                 // Load incomes and expenses in parallel using async
                 val incomesDeferred = async {
-                    suspendCancellableCoroutine<Map<String, Income>> { continuation ->
-                        database.child("users").child(userId).child("transactionsBE").child("incomes")
-                            .addValueEventListener(object : ValueEventListener {
-                                override fun onDataChange(snapshot: DataSnapshot) {
-                                    val newIncomes = mutableMapOf<String, Income>()
-                                    snapshot.children.forEach { data ->
-                                        data.getValue(Income::class.java)?.let { income ->
-                                            newIncomes[data.key!!] = income
-                                        }
-                                    }
-                                    continuation.resume(newIncomes)
+                    database.child("users").child(userId).child("transactionsBE").child("incomes")
+                        .get()
+                        .await()
+                        .let { snapshot ->
+                            val newIncomes = mutableMapOf<String, Income>()
+                            snapshot.children.forEach { data ->
+                                data.getValue(Income::class.java)?.let { income ->
+                                    newIncomes[data.key!!] = income
                                 }
-
-                                override fun onCancelled(error: DatabaseError) {
-                                    continuation.resumeWithException(error.toException())
-                                }
-                            })
-                    }
+                            }
+                            newIncomes
+                        }
                 }
 
                 val expensesDeferred = async {
-                    suspendCancellableCoroutine<Pair<Map<String, TransactionBE>, Double>> { continuation ->
-                        database.child("users").child(userId).child("transactionsBE").child("expenses")
-                            .addValueEventListener(object : ValueEventListener {
-                                override fun onDataChange(snapshot: DataSnapshot) {
-                                    val newExpenses = mutableMapOf<String, TransactionBE>()
-                                    var expenseTotal = 0.0
-                                    snapshot.children.forEach { data ->
-                                        data.getValue(TransactionBE::class.java)?.let { transaction ->
-                                            newExpenses[data.key!!] = transaction
-                                            expenseTotal += transaction.amount
-                                        }
-                                    }
-                                    continuation.resume(newExpenses to expenseTotal)
+                    database.child("users").child(userId).child("transactionsBE").child("expenses")
+                        .get()
+                        .await()
+                        .let { snapshot ->
+                            val newExpenses = mutableMapOf<String, TransactionBE>()
+                            var expenseTotal = 0.0
+                            snapshot.children.forEach { data ->
+                                data.getValue(TransactionBE::class.java)?.let { transaction ->
+                                    newExpenses[data.key!!] = transaction
+                                    expenseTotal += transaction.amount
                                 }
-
-                                override fun onCancelled(error: DatabaseError) {
-                                    continuation.resumeWithException(error.toException())
-                                }
-                            })
-                    }
+                            }
+                            newExpenses to expenseTotal
+                        }
                 }
 
                 // Await both results
@@ -275,11 +278,91 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
 
                 Log.d("TransactionViewModel", "Loaded ${incomes.size} incomes and ${expenses.size} expenses in parallel")
             } catch (e: Exception) {
-                if (e !is CancellationException) {
-                    Log.e("TransactionViewModel", "Lỗi tải transactions: ${e.message}", e)
-                    _isLoadingTransactions.value = false
-                }
+                Log.e("TransactionViewModel", "Lỗi tải transactions: ${e.message}", e)
+                _isLoadingTransactions.value = false
             }
+        }
+    }
+    private fun setupRealtimeListeners(userId: String) {
+        // Listener for incomes
+        database.child("users").child(userId).child("transactionsBE").child("incomes")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newIncomes = mutableMapOf<String, Income>()
+                    snapshot.children.forEach { data ->
+                        val key = data.key
+                        val income = data.getValue(Income::class.java)
+                        if (key != null && income != null) {
+                            newIncomes[key] = income
+                        }
+                    }
+                    _incomes.value = newIncomes
+                    updateTotalBalance()
+                    Log.d("TransactionViewModel", "Updated ${newIncomes.size} incomes")
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Failed to update incomes: ${error.message}")
+                }
+            })
+
+        // Listener for expenses
+        database.child("users").child(userId).child("transactionsBE").child("expenses")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newExpenses = mutableMapOf<String, TransactionBE>()
+                    var expenseTotal = 0.0
+                    snapshot.children.forEach { data ->
+                        val key = data.key
+                        val expense = data.getValue(TransactionBE::class.java)
+                        if (key != null && expense != null) {
+                            newExpenses[key] = expense
+                            expenseTotal += expense.amount
+                        }
+                    }
+                    _expenses.value = newExpenses
+                    _totalExpense.value = expenseTotal
+                    updateTotalBalance()
+                    Log.d("TransactionViewModel", "Updated ${newExpenses.size} expenses")
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Failed to update expenses: ${error.message}")
+                }
+            })
+
+        // Listener for account
+        database.child("users").child(userId).child("account")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val account = snapshot.getValue(Account::class.java)
+                    _account.value = account
+                    _totalBalance.value = account?.balance ?: 0.0
+                    Log.d("TransactionViewModel", "Updated account balance: ${_totalBalance.value}")
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Failed to update account: ${error.message}")
+                }
+            })
+    }
+
+
+    private fun updateTotalBalance() {
+        val incomeTotal = _incomes.value.values.sumOf { it.amount }
+        val expenseTotal = _expenses.value.values.sumOf { it.amount }
+        val calculatedBalance = incomeTotal - expenseTotal
+
+        // Update the account balance in the database
+        userId?.let { uid ->
+            database.child("users").child(uid).child("account").child("balance")
+                .setValue(calculatedBalance)
+                .addOnSuccessListener {
+                    Log.d("TransactionViewModel", "Cập nhật balance trong database: $calculatedBalance")
+                }
+                .addOnFailureListener { error ->
+                    Log.e("TransactionViewModel", "Lỗi khi cập nhật balance trong database: ${error.message}")
+                }
         }
     }
 
@@ -290,7 +373,7 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
     fun addListCategory(listCategory: ListCategories) {
         val userId = auth.currentUser?.uid ?: return
         val listCategoryId = generateCategoryId()
-        database.child("users").child(userId).child("listCategories").child(listCategoryId)
+        database.child("users").child(userId).child("ListCategories").child(listCategoryId)
             .setValue(listCategory.copy(id = listCategoryId))
             .addOnSuccessListener {
                 Log.d("addListCategory", "Đã thêm ListCategory ${listCategory.name} với ID: $listCategoryId")
@@ -303,7 +386,7 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
     fun addCategory(listCategoryId: String, category: Category, onCategoryAdded: (String) -> Unit) {
         val userId = auth.currentUser?.uid ?: return
         val categoryId = generateCategoryId()
-        database.child("users").child(userId).child("listCategories").child(listCategoryId)
+        database.child("users").child(userId).child("ListCategories").child(listCategoryId)
             .child("categories").child(categoryId)
             .setValue(category.copy(id = categoryId))
             .addOnSuccessListener {
@@ -330,10 +413,14 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
                 return@launch
             }
 
-            val dbRef = database
+            // Wait until account is loaded
+            while (_isLoadingAccount.value) {
+                delay(100)
+            }
+
             val currentAccount = _account.value
             if (currentAccount != null) {
-                val userBalanceRef = dbRef.child("users").child(userId).child("account").child("balance")
+                val userBalanceRef = database.child("users").child(userId).child("account").child("balance")
                 val currentBalance = currentAccount.balance ?: 0.0
                 val newBalance = currentBalance - newExpense.amount
 
@@ -345,7 +432,7 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
                     Log.e("AddExpense", "Lỗi khi cập nhật balance: ${error.message}")
                 }
             } else {
-                Log.w("AddExpense", "Không tìm thấy tài khoản để trừ tiền.")
+                Log.e("AddExpense", "Tài khoản vẫn không tồn tại sau khi chờ load.")
             }
 
             _totalExpense.update { it + newExpense.amount }
@@ -386,10 +473,16 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
                 return@launch
             }
 
-            val dbRef = database
+            // Wait until account is loaded
+            while (_isLoadingAccount.value) {
+                delay(100)
+            }
+
             val currentAccount = _account.value
+            Log.d("AddIncome", "uid $userId, account: $currentAccount")
+
             if (currentAccount != null) {
-                val userBalanceRef = dbRef.child("users").child(userId).child("account").child("balance")
+                val userBalanceRef = database.child("users").child(userId).child("account").child("balance")
                 val currentBalance = currentAccount.balance ?: 0.0
                 val newBalance = currentBalance + newIncome.amount
 
@@ -401,7 +494,7 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
                     Log.e("AddIncome", "Lỗi khi cập nhật balance: ${error.message}")
                 }
             } else {
-                Log.w("AddIncome", "Không tìm thấy tài khoản để cộng tiền.")
+                Log.e("AddIncome", "Tài khoản vẫn không tồn tại sau khi chờ load.")
             }
         }
     }
@@ -464,7 +557,7 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
 
     fun deleteListCategory(categoryId: String) {
         val userId = auth.currentUser?.uid ?: return
-        database.child("users").child(userId).child("listCategories").child(categoryId).removeValue()
+        database.child("users").child(userId).child("ListCategories").child(categoryId).removeValue()
             .addOnSuccessListener {
                 _listCategories.update { currentMap ->
                     currentMap.filterKeys { it != categoryId }
@@ -501,7 +594,10 @@ class TransactionViewModel @Inject constructor() : ViewModel() {
     }
 
     fun getCategoryNameById(categoryId: String?): String? {
-        return _categories.value[categoryId]?.name
+        _listCategories.value.values.forEach { listCategory ->
+            listCategory.categories[categoryId]?.let { return it.name }
+        }
+        return null
     }
 
     companion object {
