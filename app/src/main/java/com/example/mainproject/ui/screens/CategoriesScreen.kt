@@ -1,7 +1,8 @@
 package com.example.mainproject.ui.screens
 
-import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,48 +25,27 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.mainproject.data.model.Category
 import com.example.mainproject.R
 import com.example.mainproject.data.model.ListCategories
-import com.example.mainproject.data.repository.NotificationRepository
-import com.example.mainproject.data.repository.UserRepository
-import com.example.mainproject.ui.components.*
+import com.example.mainproject.ui.components.BottomNavigationBar
+import com.example.mainproject.ui.components.CustomHeader
+import com.example.mainproject.ui.components.GridItem
 import com.example.mainproject.viewModel.AppViewModel
-import com.example.mainproject.viewModel.AppViewModelFactory
-import com.example.mainproject.viewModel.TransactionViewModel
-import com.example.mainproject.viewModel.TransactionViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import java.text.NumberFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.*
-public  val categoryIcons = mapOf(
-    "Ăn uống" to Icons.Filled.Restaurant,
-    "Công nghệ" to Icons.Filled.Android,
-    "Văn học" to Icons.Filled.Book,
-    "Thời trang" to Icons.Filled.Checkroom,
-    "Đời sống" to Icons.Filled.Home,
-    "Giải trí" to Icons.Filled.PlayArrow,
-    "Khám phá" to Icons.Filled.Explore,
-    "Học tập" to Icons.Filled.School,
-    "Chăm sóc bản thân" to Icons.Filled.Spa
-)
 
 @Composable
-fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = viewModel(factory = AppViewModelFactory(auth = FirebaseAuth.getInstance()))) {
-    val currentUserState = appViewModel.currentUser.collectAsState()
-    val userId = currentUserState.value?.userId
-
-    val viewModel: TransactionViewModel = viewModel(
-        factory = TransactionViewModelFactory(
-            notificationRepository = NotificationRepository.create(),
-            userId = userId
-        )
-    )
-    val textField1 = remember { mutableStateOf("") }
-    val ListCategoriesMap by viewModel.listCategories.collectAsState()
-    val totalBalance by viewModel.totalBalance.collectAsState()
-    val totalExpense by viewModel.totalExpense.collectAsState()
-    val listCategoriesList = ListCategoriesMap.values.toList()
-    var expenseAnalysisChecked by remember { mutableStateOf(true) }
+fun CategoriesScreen(
+    navController: NavController,
+    appViewModel: AppViewModel = viewModel(factory = AppViewModel.provideFactory(auth = FirebaseAuth.getInstance()))
+) {
+    val listCategories by appViewModel.listCategories.collectAsState()
+    val totalBalance by appViewModel.totalBalance.collectAsState()
+    val totalExpense by appViewModel.totalExpense.collectAsState()
+    var showAddDialog by remember { mutableStateOf(false) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -75,7 +55,7 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
     Scaffold(
         bottomBar = {
             BottomNavigationBar(
-                selectedItem = currentRoute ?: NavigationItem.DefaultItems.first().route,
+                selectedItem = currentRoute ?: "default_route", // Replace with actual default route
                 onItemClick = { item ->
                     navController.navigate(item.route) {
                         launchSingleTop = true
@@ -90,9 +70,17 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                 onBackClick = {
                     navController.popBackStack()
                 },
-                backgroundColor = Color(0xFF3498DB), // Cung cấp giá trị cho backgroundColor
-                contentColor = Color.White       // Cung cấp giá trị cho contentColor
+                backgroundColor = Color(0xFF3498DB),
+                contentColor = Color.White
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = Color(0xFF3498DB)
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "Thêm danh mục", tint = Color.White)
+            }
         }
     ) { paddingValues ->
         Column(
@@ -135,7 +123,7 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                         fontSize = 14.sp
                     )
                     Text(
-                        text = "${formatter.format(totalExpense)}",
+                        text = formatter.format(totalExpense),
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp,
                         color = Color(0xFFFF3B30)
@@ -177,25 +165,6 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                         .padding(end = 16.dp)
                 )
             }
-            Spacer(modifier = Modifier.height(5.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 40.dp),
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-//                Checkbox(
-//                    checked = expenseAnalysisChecked,
-//                    onCheckedChange = { expenseAnalysisChecked = it }
-//                )
-//                Spacer(modifier = Modifier.width(8.dp))
-//                Text(
-//                    stringResource(R.string.expense_analysis),
-//                    color = Color.Black,
-//                    fontSize = 14.sp
-//                )
-            }
             Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier
@@ -205,86 +174,53 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
                     .background(Color(0xFFF4FFF9))
                     .padding(horizontal = 16.dp, vertical = 24.dp)
             ) {
-                Column {
-                    OutlinedTextField(
-                        value = textField1.value,
-                        onValueChange = { textField1.value = it },
-                        label = { Text("List Category Title") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            val categoryName = textField1.value
-                            val iconKey = categoryName // Sử dụng trực tiếp tên danh mục làm key
-                            if (textField1.value.isNotBlank()) {
-                                val newListCategory = ListCategories(
-                                    id = viewModel.generateCategoryId(),
-                                    name = textField1.value,
-                                    date = java.time.LocalDateTime.now().toString(),
-                                    icon = textField1.value // Ánh xạ icon dựa trên title
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    contentPadding = PaddingValues(all = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(listCategories) { categoryListItem ->
+                        Box(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                GridItem(
+                                    id = categoryListItem.id,
+                                    text = categoryListItem.name,
+                                    sizeItem = 100.dp,
+                                    colorText =Color(0xFF3498DB),
+                                    colorBackground = Color.White,
+                                    activeTextColor = Color.White,
+                                    activeBackgroundColor = colorResource(id = R.color.mainColor),
+                                    roundedCorner = 16,
+                                    iconType = categoryListItem.icon ?: "",
+                                    categoryIcons = categoryIcons,
+                                    onClick = { categoryListItemId ->
+                                        navController.navigate("categoryDetail/$categoryListItemId")
+                                    }
                                 )
-                                viewModel.addListCategory(newListCategory)
-                                textField1.value = ""
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = categoryListItem.name,
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 12.sp
+                                )
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
-                        Text("Add List Category")
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        contentPadding = PaddingValues(all = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(listCategoriesList) { categoryListItems ->
-                            Box( // Sử dụng Box để định vị nút xóa trên GridItem
-                                modifier = Modifier.fillMaxWidth()
+                            IconButton(
+                                onClick = {
+                                    appViewModel.deleteListCategory(categoryListItem.id)
+                                },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(4.dp)
+                                    .width(20.dp)
                             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    GridItem(
-                                        id = categoryListItems.id,
-                                        text = categoryListItems.name,
-                                        sizeItem = 100.dp,
-                                        colorText = Color.Black,
-                                        colorBackground = Color.White,
-                                        activeTextColor = Color.White,
-                                        activeBackgroundColor = colorResource(id = R.color.mainColor),
-                                        roundedCorner = 16,
-                                        iconType = categoryListItems.icon.toString(),
-                                        categoryIcons = categoryIcons,
-                                        onClick = { categoryListItemsId ->
-                                            navController.navigate("categoryDetail/${categoryListItemsId}")
-                                        }
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = categoryListItems.name,
-                                        textAlign = TextAlign.Center,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                                // Nút xóa ở góc trên bên phải của Box (đè lên GridItem)
-                                IconButton(
-                                    onClick = {
-                                        viewModel.deleteListCategory(categoryListItems.id)
-                                    },
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd) // Định vị ở góc trên bên phải của Box
-                                        .padding(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Xóa",
-                                        tint = Color.Red
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Xóa",
+                                    tint = Color.Red
+                                )
                             }
                         }
                     }
@@ -292,4 +228,89 @@ fun CategoriesScreen(navController: NavController, appViewModel: AppViewModel = 
             }
         }
     }
+
+    if (showAddDialog) {
+        AddCategoryDialog(
+            onDismiss = { showAddDialog = false },
+            onAddCategory = { name, icon ->
+                appViewModel.addListCategory(name, icon)
+            }
+        )
+    }
+}
+
+@Composable
+fun AddCategoryDialog(
+    onDismiss: () -> Unit,
+    onAddCategory: (String, String?) -> Unit
+) {
+    var categoryName by remember { mutableStateOf("") }
+    var selectedIcon by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Thêm danh mục mới") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                OutlinedTextField(
+                    value = categoryName,
+                    onValueChange = { categoryName = it },
+                    label = { Text("Tên danh mục") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Chọn biểu tượng", style = MaterialTheme.typography.bodyMedium)
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(categoryIcons.keys.toList()) { iconName ->
+                        Card(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clickable { selectedIcon = iconName },
+                            border = if (selectedIcon == iconName) {
+                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                            } else {
+                                null
+                            },
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                        ) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = categoryIcons[iconName] ?: Icons.Default.Error,
+                                    contentDescription = iconName,
+                                    tint = if (selectedIcon == iconName) MaterialTheme.colorScheme.primary else Color.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (categoryName.isNotBlank()) {
+                        onAddCategory(categoryName, selectedIcon)
+                        onDismiss()
+                    }
+                },
+                enabled = categoryName.isNotBlank()
+            ) {
+                Text("Thêm")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy")
+            }
+        }
+    )
 }

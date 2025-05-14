@@ -133,11 +133,14 @@ class UserRepository {
     }
 
     fun updateAccountBalance(account: Account, callback: (Boolean, String?) -> Unit) { // Không cần accountId
+        Log.d("RepoOperation", "Attempting to update account balance for user: ${account.userId}, account ID (if exists): ${account.id}, new balance: ${account.balance}")
         database.child("users").child(account.userId).child("accounts").setValue(account)
             .addOnCompleteListener { task ->
+                Log.d("RepoOperation", "Update account balance result - Success: ${task.isSuccessful}, Error: ${task.exception?.message}")
                 callback(task.isSuccessful, task.exception?.message)
             }
     }
+
 
     // Hàm để lấy tham chiếu đến node BankAccount của người dùng
     fun getUserBankAccountRef(userId: String) = database.child("users").child(userId).child("BankAccount")

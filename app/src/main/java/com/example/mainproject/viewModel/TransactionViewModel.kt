@@ -12,24 +12,31 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import dagger.hilt.android.UnstableApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import java.util.UUID
+import javax.inject.Inject
 
-class TransactionViewModel(
+class TransactionViewModel @Inject constructor(
     private val notificationRepository: NotificationRepository,
     private val userId: String?
 ) : ViewModel() {
     private val auth = FirebaseAuth.getInstance()
     private val database = FirebaseDatabase.getInstance().reference
     private val _userInfo = MutableStateFlow<UserInfo?>(null)
-    private val _account = MutableStateFlow<Account?>(null) // Đã thay đổi
+    private val _account = MutableStateFlow<Account?>(null)
     private val _categories = MutableStateFlow<Map<String, Category>>(emptyMap())
     private val _budgets = MutableStateFlow<Map<String, Budget>>(emptyMap())
     private val _transactionsBE = MutableStateFlow<Map<String, TransactionBE>>(emptyMap())
@@ -51,6 +58,70 @@ class TransactionViewModel(
     private val _isLoadingTransactions = MutableStateFlow(true)
     val isLoadingTransactions: StateFlow<Boolean> = _isLoadingTransactions.asStateFlow()
 
+
+    private val _isLoadingAccount = MutableStateFlow(true) // New flag for account loading state
+    val isLoadingAccount: StateFlow<Boolean> = _isLoadingAccount.asStateFlow()
+    private val _incomes = MutableStateFlow<Map<String, Income>>(emptyMap())
+    private val _expenses = MutableStateFlow<Map<String, TransactionBE>>(emptyMap())
+    private val _selectedTransactionType = MutableStateFlow("all") // "all", "income", "expense"
+
+    // Unified transaction data class for UI
+    data class UnifiedTransaction(
+        val id: String,
+        val categoryId: String,
+        val title: String,
+        val amount: Double,
+        val type: String,
+        val date: String,
+        val message: String
+    )
+
+    // Filtered transactions combining Income and TransactionBE
+    val filteredTransactions: StateFlow<List<UnifiedTransaction>> = combine(
+        _incomes,
+        _expenses,
+        _selectedTransactionType
+    ) { incomes, expenses, type ->
+        val unified = mutableListOf<UnifiedTransaction>()
+        incomes.values.forEach { income ->
+            unified.add(
+                UnifiedTransaction(
+                    id = income.id,
+                    categoryId = income.categoryId,
+                    title = income.title,
+                    amount = income.amount,
+                    type = "income",
+                    date = income.date,
+                    message = income.message
+                )
+            )
+        }
+        expenses.values.forEach { expense ->
+            unified.add(
+                UnifiedTransaction(
+                    id = expense.id,
+                    categoryId = expense.categoryId,
+                    title = expense.title,
+                    amount = expense.amount,
+                    type = "expense",
+                    date = expense.date,
+                    message = expense.message
+                )
+            )
+        }
+        unified.filter { transaction ->
+            when (type) {
+                "income" -> transaction.type == "income"
+                "expense" -> transaction.type == "expense"
+                else -> true // "all"
+            }
+        }.sortedByDescending { it.date }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
     init {
         val userId = auth.currentUser?.uid
         if (userId != null) {
@@ -59,9 +130,161 @@ class TransactionViewModel(
             loadListCategories(userId)
             loadBudgets(userId)
             loadTransactionsBE(userId)
+            setupRealtimeListeners(userId)
         } else {
             _userInfo.value = null
             _isLoadingTransactions.value = false
+        }
+    }
+
+    // Set the transaction type filter when a UI component is clicked
+    fun setTransactionType(type: String) {
+        if (type in listOf("all", "income", "expense")) {
+            _selectedTransactionType.value = type
+            Log.d("TransactionViewModel", "Selected transaction type: $type")
+        } else {
+            Log.w("TransactionViewModel", "Invalid transaction type: $type")
+        }
+    }
+
+    private fun saveNewIncomeToTransactionBE(userId: String, newIncome: Income, categoryId: String) {
+        val dbRef = database
+        val incomeId = dbRef.child("users").child(userId).child("transactionsBE").child("incomes").push().key ?: return
+
+        val income = Income(
+            id = incomeId,
+            categoryId = categoryId,
+            title = newIncome.title,
+            amount = newIncome.amount,
+            date = newIncome.date ?: LocalDate.now().toString(),
+            message = newIncome.message
+        )
+
+        dbRef.child("users").child(userId).child("transactionsBE").child("incomes").child(incomeId)
+            .setValue(income)
+            .addOnSuccessListener {
+                Log.d("SaveIncomeBE", "Lưu income vào transactionsBE/incomes thành công: $incomeId")
+                sendNewIncomeNotification(userId, newIncome)
+            }
+            .addOnFailureListener { error ->
+                Log.e("SaveIncomeBE", "Lỗi khi lưu income vào transactionsBE/incomes: ${error.message}")
+            }
+    }
+
+    fun addIncome(categoryId: String, newIncome: Income) {
+        Log.d("AddIncome", "Bắt đầu thêm income với Category ID: $categoryId, Amount: ${newIncome.amount}")
+        viewModelScope.launch {
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                Log.w("AddIncome", "Người dùng chưa xác thực.")
+                return@launch
+            }
+
+            // Wait until account is loaded
+            while (_isLoadingAccount.value) {
+                delay(100)
+            }
+
+            val currentAccount = _account.value
+            Log.d("AddIncome", "uid $userId, account: $currentAccount")
+
+            if (currentAccount != null) {
+                val userBalanceRef = database.child("users").child(userId).child("accounts").child("balance")
+                val currentBalance = currentAccount.balance ?: 0.0
+                val newBalance = currentBalance + newIncome.amount
+
+                userBalanceRef.setValue(newBalance).addOnSuccessListener {
+                    Log.d("AddIncome", "Cập nhật balance thành công. Balance mới: $newBalance")
+                    _totalBalance.update { it + newIncome.amount }
+                    saveNewIncomeToTransactionBE(userId, newIncome, categoryId)
+                }.addOnFailureListener { error ->
+                    Log.e("AddIncome", "Lỗi khi cập nhật balance: ${error.message}")
+                }
+            } else {
+                Log.e("AddIncome", "Tài khoản vẫn không tồn tại sau khi chờ load.")
+            }
+        }
+    }
+
+    private fun setupRealtimeListeners(userId: String) {
+        // Listener for incomes
+        database.child("users").child(userId).child("transactionsBE").child("incomes")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newIncomes = mutableMapOf<String, Income>()
+                    snapshot.children.forEach { data ->
+                        val key = data.key
+                        val income = data.getValue(Income::class.java)
+                        if (key != null && income != null) {
+                            newIncomes[key] = income
+                        }
+                    }
+                    _incomes.value = newIncomes
+                    updateTotalBalance()
+                    Log.d("TransactionViewModel", "Updated ${newIncomes.size} incomes")
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Failed to update incomes: ${error.message}")
+                }
+            })
+
+        // Listener for expenses
+        database.child("users").child(userId).child("transactionsBE").child("expenses")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val newExpenses = mutableMapOf<String, TransactionBE>()
+                    var expenseTotal = 0.0
+                    snapshot.children.forEach { data ->
+                        val key = data.key
+                        val expense = data.getValue(TransactionBE::class.java)
+                        if (key != null && expense != null) {
+                            newExpenses[key] = expense
+                            expenseTotal += expense.amount
+                        }
+                    }
+                    _expenses.value = newExpenses
+                    _totalExpense.value = expenseTotal
+                    updateTotalBalance()
+                    Log.d("TransactionViewModel", "Updated ${newExpenses.size} expenses")
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Failed to update expenses: ${error.message}")
+                }
+            })
+
+        // Listener for account
+        database.child("users").child(userId).child("accounts")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val account = snapshot.getValue(Account::class.java)
+                    _account.value = account
+                    _totalBalance.value = account?.balance ?: 0.0
+                    Log.d("TransactionViewModel", "Updated account balance: ${_totalBalance.value}")
+                }
+
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("TransactionViewModel", "Failed to update account: ${error.message}")
+                }
+            })
+    }
+
+    private fun updateTotalBalance() {
+        val incomeTotal = _incomes.value.values.sumOf { it.amount }
+        val expenseTotal = _expenses.value.values.sumOf { it.amount }
+        val calculatedBalance = incomeTotal - expenseTotal
+
+        // Update the account balance in the database
+        userId?.let { uid ->
+            database.child("users").child(uid).child("accounts").child("balance")
+                .setValue(calculatedBalance)
+                .addOnSuccessListener {
+                    Log.d("TransactionViewModel", "Cập nhật balance trong database: $calculatedBalance")
+                }
+                .addOnFailureListener { error ->
+                    Log.e("TransactionViewModel", "Lỗi khi cập nhật balance trong database: ${error.message}")
+                }
         }
     }
 
@@ -79,7 +302,7 @@ class TransactionViewModel(
     }
 
     private fun loadAccount(userId: String) { // Đã thay đổi tên hàm
-        database.child("users").child(userId).child("account")
+        database.child("users").child(userId).child("accounts")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     _account.value = snapshot.getValue(Account::class.java) // Đọc trực tiếp Account
@@ -134,29 +357,85 @@ class TransactionViewModel(
     }
 
     @OptIn(UnstableApi::class)
+//    private fun loadTransactionsBE(userId: String) {
+//        _isLoadingTransactions.value = true
+//        val expensesRef = database.child("users").child(userId).child("transactionsBE").child("expenses")
+//        val allTransactions = mutableMapOf<String, TransactionBE>()
+//        var totalExpense = 0.0
+//
+//        val expenseListener = object : ValueEventListener {
+//            override fun onDataChange(snapshot: DataSnapshot) {
+//                snapshot.children.forEach { data ->
+//                    data.getValue(TransactionBE::class.java)?.let { transaction ->
+//                        allTransactions[data.key!!] = transaction
+//                        if (transaction.type == "expense") {
+//                            totalExpense += transaction.amount
+//                        }
+//                    }
+//                }
+//                _transactionsBE.value = allTransactions // Cập nhật khi có dữ liệu expense
+//                _totalExpense.value = totalExpense
+//                // Không set isLoading false ở đây, đợi income listener
+//            }
+//            override fun onCancelled(error: DatabaseError) {
+//                Log.e("TransactionViewModel", "Lỗi tải Expenses: ${error.message}")
+//                _isLoadingTransactions.value = false
+//            }
+//        }
+//        expensesRef.addValueEventListener(expenseListener)
+//    }
     private fun loadTransactionsBE(userId: String) {
-        database.child("users").child(userId).child("transactionsBE")
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val newTransactions = mutableMapOf<String, TransactionBE>()
-                    var expense = 0.0
-                    snapshot.children.forEach { data ->
-                        data.getValue(TransactionBE::class.java)?.let { transaction ->
-                            newTransactions[data.key!!] = transaction
-                            if (transaction.type == "expense") {
-                                expense += transaction.amount
+        viewModelScope.launch {
+            try {
+                // Load incomes and expenses in parallel using async
+                val incomesDeferred = async {
+                    database.child("users").child(userId).child("transactionsBE").child("incomes")
+                        .get()
+                        .await()
+                        .let { snapshot ->
+                            val newIncomes = mutableMapOf<String, Income>()
+                            snapshot.children.forEach { data ->
+                                data.getValue(Income::class.java)?.let { income ->
+                                    newIncomes[data.key!!] = income
+                                }
                             }
+                            newIncomes
                         }
-                    }
-                    _transactionsBE.value = newTransactions
-                    _totalExpense.value = expense
-                    _isLoadingTransactions.value = false
                 }
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("TransactionViewModel", "Lỗi tải TransactionsBE: ${error.message}")
-                    _isLoadingTransactions.value = false
+
+                val expensesDeferred = async {
+                    database.child("users").child(userId).child("transactionsBE").child("expenses")
+                        .get()
+                        .await()
+                        .let { snapshot ->
+                            val newExpenses = mutableMapOf<String, TransactionBE>()
+                            var expenseTotal = 0.0
+                            snapshot.children.forEach { data ->
+                                data.getValue(TransactionBE::class.java)?.let { transaction ->
+                                    newExpenses[data.key!!] = transaction
+                                    expenseTotal += transaction.amount
+                                }
+                            }
+                            newExpenses to expenseTotal
+                        }
                 }
-            })
+
+                // Await both results
+                val incomes = incomesDeferred.await()
+                val (expenses, expenseTotal) = expensesDeferred.await()
+
+                // Update StateFlows
+                _incomes.value = incomes
+                _expenses.value = expenses
+                _totalExpense.value = expenseTotal
+                _isLoadingTransactions.value = false
+
+                Log.d("TransactionViewModel", "Loaded ${incomes.size} incomes and ${expenses.size} expenses in parallel")
+            } catch (e: Exception) {
+                Log.e("TransactionViewModel", "Lỗi tải transactions: ${e.message}", e)
+                _isLoadingTransactions.value = false
+            }
+        }
     }
 
     fun generateCategoryId(): String {
@@ -176,7 +455,7 @@ class TransactionViewModel(
             }
     }
 
-    fun addCategory(listCategoryId: String, category: Category, onCategoryAdded: (String) -> Unit) {
+    fun addCategory(listCategoryId: String, category: Category) {
         val userId = auth.currentUser?.uid ?: return
         val categoryId = generateCategoryId()
         database.child("users").child(userId).child("ListCategories").child(listCategoryId)
@@ -190,7 +469,6 @@ class TransactionViewModel(
                         currentMap + (listCategoryId to existingListCategory.copy(categories = updatedCategories))
                     } ?: currentMap
                 }
-                onCategoryAdded(categoryId)
             }
             .addOnFailureListener { error ->
                 Log.e("addCategory", "Lỗi khi thêm category ${category.name} vào ListCategory $listCategoryId: ${error.message}")
@@ -208,53 +486,58 @@ class TransactionViewModel(
             }
 
             val dbRef = database
-            Log.d("AddExpense", "Tham chiếu Database: $dbRef")
-            Log.d("AddExpense", "Giá trị _account hiện tại: ${_account.value}") // Đã thay đổi
-            val currentAccount = _account.value // Lấy trực tiếp đối tượng Account
-            Log.d("AddExpense", "Thông tin tài khoản hiện tại: $currentAccount")
+            val currentAccount = _account.value
 
             if (currentAccount != null) {
-                val userBalanceRef = dbRef.child("users").child(userId).child("account").child("balance") // Truy cập trực tiếp
-                Log.d("AddExpense", "Tham chiếu đến balance: $userBalanceRef")
+                val userBalanceRef = dbRef.child("users").child(userId).child("accounts").child("balance")
                 val currentBalance = currentAccount.balance ?: 0.0
-                Log.d("AddExpense", "Balance hiện tại: $currentBalance")
                 val newBalance = currentBalance - newExpense.amount
-                Log.d("AddExpense", "Balance mới sau khi trừ: $newBalance")
 
                 userBalanceRef.setValue(newBalance).addOnSuccessListener {
                     Log.d("AddExpense", "Cập nhật balance thành công. Balance mới: $newBalance")
                     _totalBalance.update { it - newExpense.amount }
-                    saveNewExpenseToTransactionBE(userId, newExpense)
-                    saveNewTransactionForExpense(userId, newExpense)
+                    saveNewTransactionForExpense(userId, newExpense) { savedExpense -> // Nhận lại savedExpense với ID
+                        // Cập nhật _transactionsBE sau khi expense được lưu thành công
+                        _transactionsBE.update { currentMap ->
+                            currentMap + (savedExpense.id to TransactionBE(
+                                id = savedExpense.id,
+                                categoryId = savedExpense.categoryId,
+                                title = savedExpense.title,
+                                amount = savedExpense.amount,
+                                type = "expense",
+                                date = savedExpense.date,
+                                message = "Chi tiêu cho '${savedExpense.title}'"
+                            ))
+                        }
+                        _totalExpense.update { it + savedExpense.amount }
+                        Log.d("AddExpense", "_transactionsBE sau khi thêm: ${_transactionsBE.value}")
+                    }
+//                    saveNewTransactionForExpense(userId, newExpense)
                 }.addOnFailureListener { error ->
                     Log.e("AddExpense", "Lỗi khi cập nhật balance: ${error.message}")
                 }
             } else {
                 Log.w("AddExpense", "Không tìm thấy tài khoản để trừ tiền.")
             }
-
-            // Không cập nhật _expenses nữa vì chúng ta không lưu expense riêng trong categories
-            _totalExpense.update { it + newExpense.amount }
-            Log.d("AddExpense", "Tổng chi phí sau khi thêm: ${_totalExpense.value}")
         }
     }
 
-    private fun saveNewExpenseToTransactionBE(userId: String, newExpense: Expense) {
+    private fun saveNewExpenseToTransactionBE(userId: String, newExpense: Expense, onComplete: (Expense) -> Unit) {
         val dbRef = database
-        val expenseId = dbRef.child("users")
+        val expenseRef = dbRef.child("users")
             .child(userId)
             .child("transactionsBE")
+            .child("expenses")
             .push()
-            .key ?: return
 
-        dbRef.child("users")
-            .child(userId)
-            .child("transactionsBE")
-            .child(expenseId)
-            .setValue(newExpense.copy(id = expenseId))
+        val expenseId = expenseRef.key ?: return
+        val savedExpense = newExpense.copy(id = expenseId)
+
+        expenseRef.setValue(savedExpense)
             .addOnSuccessListener {
-                Log.d("SaveExpenseBE", "Lưu expense vào transactionsBE thành công...")
-                sendNewExpenseNotification(userId, newExpense)
+                Log.d("SaveExpenseBE", "Lưu expense vào transactionsBE thành công với ID: $expenseId")
+                sendNewExpenseNotification(userId, savedExpense)
+                onComplete(savedExpense) // Gọi callback và truyền savedExpense
             }
             .addOnFailureListener { error ->
                 Log.e("SaveExpenseBE", "Lỗi khi lưu expense vào transactionsBE: ${error.message}")
@@ -279,7 +562,7 @@ class TransactionViewModel(
     fun deleteExpense(listCategoryId: String, expenseId: String) {
         userId?.let { uid ->
             // 1. Lấy thông tin chi phí trước khi xóa
-            val expenseRef = database.child("users").child(uid).child("transactionsBE").child(expenseId)
+            val expenseRef = database.child("users").child(uid).child("transactionsBE").child("expenses").child(expenseId)
             expenseRef.get().addOnSuccessListener { snapshot ->
                 val deletedExpense = snapshot.getValue(TransactionBE::class.java)
                 val deletedExpenseAmount = deletedExpense?.amount ?: 0.0
@@ -325,8 +608,8 @@ class TransactionViewModel(
         }
     }
 
-    private fun saveNewTransactionForExpense(userId: String, expense: Expense) {
-        val transactionId = database.child("users").child(userId).child("transactionsBE").push().key ?: return
+    private fun saveNewTransactionForExpense(userId: String, expense: Expense, onComplete: (Expense) -> Unit) {
+        val transactionId = database.child("users").child(userId).child("transactionsBE").child("expenses").push().key ?: return
         val newTransaction = TransactionBE(
             id = transactionId,
             categoryId = expense.categoryId,
@@ -336,13 +619,53 @@ class TransactionViewModel(
             date = LocalDate.now().toString(),
             message = "Chi tiêu cho '${expense.title}'"
         )
-        database.child("users").child(userId).child("transactionsBE").child(transactionId)
+        database.child("users").child(userId).child("transactionsBE").child("expenses").child(transactionId)
             .setValue(newTransaction)
             .addOnSuccessListener {
                 Log.d("SaveTransaction", "Lưu transaction thành công cho expense: $transactionId")
+                sendNewExpenseNotification(userId, expense)
             }
             .addOnFailureListener { error ->
                 Log.e("SaveTransaction", "Lỗi khi lưu transaction cho expense: ${error.message}")
+            }
+    }
+
+    fun sendNewIncomeNotification(userId: String, income: Income) {
+        val categoryName = getCategoryNameById(income.categoryId) ?: "Không xác định"
+        val body = "Bạn vừa nhận được ${income.amount} cho '${income.title}' ($categoryName)."
+
+        val notification = Notification(
+            notificationId = UUID.randomUUID().toString(),
+            userId = userId,
+            title = "New Income",
+            body = body,
+            timestamp = LocalDate.now().toEpochDay(),
+            type = "Income",
+            data = mapOf("incomeId" to income.id)
+        )
+        viewModelScope.launch {
+            notificationRepository.saveNotification(notification)
+        }
+    }
+
+    fun saveNewTransactionForIncome(userId: String, income: Income) {
+        val transactionId = database.child("users").child(userId).child("transactionsBE").child("incomes").push().key ?: return
+        val newTransaction = TransactionBE(
+            id = transactionId,
+            categoryId = "transfer_in",
+            title = income.title,
+            amount = income.amount, // Số tiền dương cho thu nhập
+            type = "income",
+            date = LocalDate.now().toString(),
+            message = "Thu nhập từ '${income.title}'"
+        )
+        database.child("users").child(userId).child("transactionsBE").child("incomes").child(transactionId)
+            .setValue(newTransaction)
+            .addOnSuccessListener {
+                Log.d("SaveTransaction", "Lưu transaction thành công cho income: $transactionId")
+            }
+            .addOnFailureListener { error ->
+                Log.e("SaveTransaction", "Lỗi khi lưu transaction cho income: ${error.message}")
             }
     }
 

@@ -1,19 +1,21 @@
-package com.example.mainproject.viewModel
+package com.example.mainproject.viewModel.NotificationViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import android.util.Log
 import com.example.mainproject.data.model.Notification
 import com.example.mainproject.data.repository.NotificationRepository
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import java.time.Instant
-import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 
 enum class TimeFilter {
     TODAY,
@@ -24,78 +26,127 @@ enum class TimeFilter {
     OLDER
 }
 
-fun Notification.isWithinTimeFilter(filter: TimeFilter): Boolean {
-    val notificationDate = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDate()
-    val now = LocalDate.now()
-    return when (filter) {
-        TimeFilter.TODAY -> notificationDate.isEqual(now)
-        TimeFilter.YESTERDAY -> notificationDate.isEqual(now.minusDays(1))
-        TimeFilter.THIS_WEEK -> !notificationDate.isBefore(now.minusWeeks(1).plusDays(1)) && !notificationDate.isAfter(now)
-        TimeFilter.THIS_MONTH -> notificationDate.year == now.year && notificationDate.month == now.month
-        TimeFilter.THIS_YEAR -> notificationDate.year == now.year
-        TimeFilter.OLDER -> notificationDate.isBefore(now.minusYears(1))
-    }
-}
-
 class NotificationViewModel(
     private val notificationRepository: NotificationRepository,
     private val userId: String?
 ) : ViewModel() {
-    private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
-    val notifications: StateFlow<List<Notification>> = _notifications.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(true)
-    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private val _notifications = MutableStateFlow<List<Notification>>(emptyList())
+    val notifications = _notifications.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     private val _selectedTimeFilter = MutableStateFlow<TimeFilter?>(null)
-    val selectedTimeFilter: StateFlow<TimeFilter?> = _selectedTimeFilter.asStateFlow()
-
-    private val _selectedTag = MutableStateFlow<String?>(null)
-    val selectedTag: StateFlow<String?> = _selectedTag.asStateFlow()
+    val selectedTimeFilter: StateFlow<TimeFilter?> = _selectedTimeFilter
 
     init {
-        loadNotifications()
+        Log.d("NotificationViewModel", "loadNotifications started for user: $userId")
+        loadNotifications(userId) // Sử dụng userId đã nhận
     }
 
-    private fun loadNotifications() {
-        viewModelScope.launch {
-            _isLoading.value = true
-            try {
-                if (userId != null) {
-                    notificationRepository.getNotificationsForUser(userId)
-                        .collect { fetchedNotifications ->
-                            val filteredByTime = if (_selectedTimeFilter.value != null) {
-                                fetchedNotifications.filter { it.isWithinTimeFilter(_selectedTimeFilter.value!!) }
-                            } else {
-                                fetchedNotifications
-                            }
+    fun loadNotifications(userId: String?) {
+        if (userId == null) return
+        _isLoading.value = true
+        Log.d("NotificationViewModel", "isLoading set to true")
 
-                            _notifications.value = if (_selectedTag.value != null) {
-                                filteredByTime.filter { it.type == _selectedTag.value }
-                            } else {
-                                filteredByTime
-                            }
-                            _isLoading.value = false
-                        }
-                } else {
-                    _notifications.value = emptyList()
-                    _isLoading.value = false
-                }
-            } catch (e: Exception) {
+        notificationRepository.getNotificationsForUser(userId)
+            .onEach { notificationsList ->
+                _notifications.value = filterNotifications(notificationsList, _selectedTimeFilter.value)
                 _isLoading.value = false
-                // Xử lý lỗi
+                Log.d("NotificationViewModel", "isLoading set to false, notifications: $notificationsList")
             }
+            .catch { error ->
+                Log.e("NotificationViewModel", "Error fetching notifications: $error")
+                _isLoading.value = false
+                Log.d("NotificationViewModel", "isLoading set to false due to error: $error")
+            }
+            .launchIn(viewModelScope)
+    }
+
+    fun refreshNotifications() {
+        _isRefreshing.value = true
+        loadNotifications(userId) // Sử dụng userId đã nhận
+        _isRefreshing.value = false
+    }
+
+    private suspend fun loadNotificationsInternal() {
+        userId?.let {
+            notificationRepository.getNotificationsForUser(it)
+                .collect { fetchedNotifications ->
+                    android.util.Log.d("NotificationVM", "Fetched notifications: $fetchedNotifications")
+                    _notifications.value = filterNotifications(fetchedNotifications, _selectedTimeFilter.value)
+                    android.util.Log.d("NotificationVM", "Filtered notifications: ${_notifications.value}")
+                }
         }
     }
 
     fun setTimeFilter(filter: TimeFilter?) {
-        _selectedTimeFilter.update { filter }
-        loadNotifications()
+        _selectedTimeFilter.value = filter
+        loadNotifications(userId)
     }
 
-    fun setFilterTag(tag: String?) {
-        _selectedTag.update { tag }
-        loadNotifications()
+    private fun filterNotifications(
+        notifications: List<Notification>,
+        selectedFilter: TimeFilter?
+    ): List<Notification> {
+        android.util.Log.d("NotificationVM", "Filtering notifications with filter: $selectedFilter")
+        if (selectedFilter == null) {
+            return notifications // Không có filter, trả về tất cả
+        }
+
+        val now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")) // Sử dụng múi giờ Việt Nam
+        val filteredList = when (selectedFilter) {
+            TimeFilter.TODAY -> notifications.filter {
+                isSameDay(it.timestamp, now)
+            }
+            TimeFilter.YESTERDAY -> notifications.filter {
+                isSameDay(it.timestamp, now.minusDays(1))
+            }
+            TimeFilter.THIS_WEEK -> notifications.filter {
+                isWithinThisWeek(it.timestamp, now)
+            }
+            TimeFilter.THIS_MONTH -> notifications.filter {
+                isWithinThisMonth(it.timestamp, now)
+            }
+            TimeFilter.THIS_YEAR -> notifications.filter {
+                isWithinThisYear(it.timestamp, now)
+            }
+            TimeFilter.OLDER -> notifications.filter {
+                isBeforeThisYear(it.timestamp, now)
+            }
+        }
+        android.util.Log.d("NotificationVM", "Result after filtering: $filteredList")
+        return filteredList
+    }
+
+    private fun isSameDay(timestamp: Long, dateTime: LocalDateTime): Boolean {
+        val notificationDateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
+        return notificationDateTime.toLocalDate() == dateTime.toLocalDate()
+    }
+
+    private fun isWithinThisWeek(timestamp: Long, dateTime: LocalDateTime): Boolean {
+        val notificationDateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
+        val startOfWeek = dateTime.with(java.time.DayOfWeek.MONDAY).toLocalDate()
+        val endOfWeek = dateTime.with(java.time.DayOfWeek.SUNDAY).toLocalDate()
+        return !notificationDateTime.toLocalDate().isBefore(startOfWeek) && !notificationDateTime.toLocalDate().isAfter(endOfWeek)
+    }
+
+    private fun isWithinThisMonth(timestamp: Long, dateTime: LocalDateTime): Boolean {
+        val notificationDateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
+        return notificationDateTime.year == dateTime.year && notificationDateTime.month == dateTime.month
+    }
+
+    private fun isWithinThisYear(timestamp: Long, dateTime: LocalDateTime): Boolean {
+        val notificationDateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
+        return notificationDateTime.year == dateTime.year
+    }
+
+    private fun isBeforeThisYear(timestamp: Long, dateTime: LocalDateTime): Boolean {
+        val notificationDateTime = Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()).toLocalDateTime()
+        return notificationDateTime.year < dateTime.year
     }
 
     companion object {
@@ -109,6 +160,11 @@ class NotificationViewModel(
                     return NotificationViewModel(notificationRepository, userId) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
+            }
+
+            // Thêm hàm này nếu bạn chưa có
+            fun provideRepository(): NotificationRepository {
+                return NotificationRepository.create()
             }
         }
     }

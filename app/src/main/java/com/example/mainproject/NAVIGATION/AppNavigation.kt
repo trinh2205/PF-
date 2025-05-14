@@ -51,9 +51,7 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
     val appViewModel: AppViewModel = viewModel(
         factory = AppViewModelFactory(auth) // Truyền auth nếu AppViewModel cần
     )
-
-
-
+    val notificationRepository = remember { NotificationRepository.create() }
     val currentUserState = appViewModel.currentUser.collectAsState()
     val userId = currentUserState.value?.userId
     val transactionViewModel: TransactionViewModel = viewModel(
@@ -65,10 +63,12 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
     val userRepository = remember { UserRepository() } // Tạo UserRepository ở đây
 
     // Tạo BankViewModel ở đây
-    val bankViewModelFactory = remember(userRepository) {
+    // Tạo BankViewModel ở đây và truyền TransactionViewModel
+    val bankViewModelFactory = remember(userRepository, transactionViewModel) {
         BankViewModelFactory(
             userRepository = userRepository,
-            userIdProvider = { auth.currentUser?.uid }
+            userIdProvider = { auth.currentUser?.uid },
+            notificationRepository = notificationRepository // Truyền TransactionViewModel
         )
     }
     val bankViewModel: BankViewModel = viewModel(factory = bankViewModelFactory)
@@ -96,15 +96,12 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.MAIN_SCREEN) {
             MainScreen(navController = navController)
         }
-        composable("categoryDetail/{ListCategoryId}") { backStackEntry ->
-            val ListCategoryId = backStackEntry.arguments?.getString("ListCategoryId") ?: ""
-            CategoryDetailScreen(
-                navController,
-                viewModel = transactionViewModel,
-                ListCategoryId = ListCategoryId,
-                onBack = { navController.popBackStack() },
-                onAddExpenseClick = { navController.navigate("addExpense/$ListCategoryId") }
-            )
+        composable(
+            "categoryDetail/{categoryId}",
+            arguments = listOf(navArgument("categoryId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val categoryId = backStackEntry.arguments?.getString("categoryId") ?: ""
+            CategoryDetailScreen(navController = navController, listCategoryId = categoryId)
         }
 
         composable(route = Routes.BANK) {

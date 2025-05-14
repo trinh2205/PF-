@@ -46,11 +46,11 @@ data class NavigationItem(
     companion object {
         val DefaultItems = listOf(
             NavigationItem(icon = Icons.Default.Home, route = Routes.HOME),
-            NavigationItem(icon = Icons.Default.BarChart, route = Routes.ANALYTICS),
+//            NavigationItem(icon = Icons.Default.BarChart, route = Routes.ANALYTICS),
             NavigationItem(icon = Icons.Default.SwapHoriz, route = Routes.TRANSACTION),
             NavigationItem(icon = Icons.Default.Layers, route = Routes.CATEGORIES),
-            NavigationItem(icon = Icons.Default.Person, route = Routes.PROFILE),
-            NavigationItem(icon = Icons.Default.AccountBalance, route = Routes.BANK, label = "Ngân hàng") // Thêm item cho BankScreen
+            NavigationItem(icon = Icons.Default.AccountBalance, route = Routes.BANK),
+            NavigationItem(icon = Icons.Default.Person, route = Routes.PROFILE)
         )
     }
 }

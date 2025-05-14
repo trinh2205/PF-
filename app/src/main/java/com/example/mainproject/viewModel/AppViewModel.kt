@@ -4,6 +4,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.mainproject.data.model.Account
+import com.example.mainproject.data.model.Expense
+import com.example.mainproject.data.model.ListCategories
+import com.example.mainproject.data.model.Notification
 import com.example.mainproject.data.model.TransactionBE
 import com.example.mainproject.data.model.UserInfo
 import com.google.firebase.auth.FirebaseAuth
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.util.UUID
 
 class AppViewModel(
     private val auth: FirebaseAuth
@@ -55,12 +59,16 @@ class AppViewModel(
     private var userId: String? = auth.currentUser?.uid
     val userID: String = userId ?: ""
 
+    private val _listCategories = MutableStateFlow<List<ListCategories>>(emptyList())
+    val listCategories: StateFlow<List<ListCategories>> = _listCategories.asStateFlow()
+
     // Listeners
     private var userListener: ValueEventListener? = null
     private var expenseTransactionsListener: ValueEventListener? = null
     private var incomeTransactionsListener: ValueEventListener? = null
     private var accountsListener: ValueEventListener? = null
     private var budgetsListener: ValueEventListener? = null // Thêm listener cho budget
+    private var listCategoriesListener: ValueEventListener? = null
 
     // Định dạng date để so sánh
     private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -77,6 +85,7 @@ class AppViewModel(
             startIncomeTransactionsListener(uid)
             startAccountsListener(uid)
             startBudgetsListener(uid) // Bắt đầu lắng nghe budget
+            startListCategoriesListener(uid)
         } ?: run {
             Log.d("AppViewModel", "User not logged in, setting default values.")
             _totalExpense.value = 0.0
@@ -89,6 +98,29 @@ class AppViewModel(
             _weeklyTransactions.value = emptyList()
             _monthlyTransactions.value = emptyList()
         }
+    }
+
+
+    private fun startListCategoriesListener(userId: String) {
+        val listCategoriesRef = database.getReference("users").child(userId).child("ListCategories")
+        listCategoriesListener?.let { listCategoriesRef.removeEventListener(it) }
+        listCategoriesListener = listCategoriesRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val categoriesList = mutableListOf<ListCategories>()
+                snapshot.children.forEach { categorySnapshot ->
+                    val category = categorySnapshot.getValue(ListCategories::class.java)
+                    category?.let {
+                        categoriesList.add(it)
+                    }
+                }
+                _listCategories.value = categoriesList.sortedBy { it.name }
+                Log.d("AppViewModel", "Loaded ${categoriesList.size} categories for $userId")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("AppViewModel", "Error reading categories for $userId: ${error.message}")
+            }
+        })
     }
 
     private fun startUserListener(userId: String) {
@@ -133,7 +165,7 @@ class AppViewModel(
     }
 
     private fun startIncomeTransactionsListener(userId: String) {
-        val incomeRef = database.getReference("users").child(userId).child("transactionsBE").child("income")
+        val incomeRef = database.getReference("users").child(userId).child("transactionsBE").child("incomes")
         incomeTransactionsListener = incomeRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val incomeTransactions = mutableListOf<TransactionBE>()
@@ -189,7 +221,7 @@ class AppViewModel(
     }
 
     private fun startAccountsListener(userId: String) {
-        val accountRef = database.getReference("users").child(userId).child("account") // Trỏ trực tiếp đến node "account"
+        val accountRef = database.getReference("users").child(userId).child("accounts") // Trỏ trực tiếp đến node "account"
         accountsListener = accountRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val account = snapshot.getValue(Account::class.java)
@@ -232,9 +264,9 @@ class AppViewModel(
     override fun onCleared() {
         userId?.let { uid ->
             database.getReference("users").child(uid).removeEventListener(userListener ?: return@let)
-            database.getReference("users").child(uid).child("transactionsBE").child("expense")
+            database.getReference("users").child(uid).child("transactionsBE").child("expenses")
                 .removeEventListener(expenseTransactionsListener ?: return@let)
-            database.getReference("users").child(uid).child("transactionsBE").child("income")
+            database.getReference("users").child(uid).child("transactionsBE").child("incomes")
                 .removeEventListener(incomeTransactionsListener ?: return@let)
             database.getReference("users").child(uid).child("accounts").removeEventListener(accountsListener ?: return@let)
             database.getReference("users").child(uid).child("budgets").removeEventListener(budgetsListener ?: return@let)
@@ -246,9 +278,9 @@ class AppViewModel(
     private fun stopListeners() {
         currentUserId?.let { uid ->
             database.getReference("users").child(uid).removeEventListener(userListener ?: return@let)
-            database.getReference("users").child(uid).child("transactionsBE").child("expense")
+            database.getReference("users").child(uid).child("transactionsBE").child("expenses")
                 .removeEventListener(expenseTransactionsListener ?: return@let)
-            database.getReference("users").child(uid).child("transactionsBE").child("income")
+            database.getReference("users").child(uid).child("transactionsBE").child("incomes")
                 .removeEventListener(incomeTransactionsListener ?: return@let)
             database.getReference("users").child(uid).child("accounts").removeEventListener(accountsListener ?: return@let)
             database.getReference("users").child(uid).child("budgets").removeEventListener(budgetsListener ?: return@let)
@@ -259,6 +291,125 @@ class AppViewModel(
         incomeTransactionsListener = null
         accountsListener = null
         budgetsListener = null
+    }
+
+    fun saveNotification(notification: Notification) {
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            Log.e("AppViewModel", "Cannot save notification: No user is currently logged in")
+            return
+        }
+
+        val notificationId = notification.notificationId ?: UUID.randomUUID().toString()
+        val notificationRef = database.getReference("users") // Thay đổi tham chiếu gốc thành "users"
+            .child(userId)
+            .child("Notifications") // Đổi tên nhánh thành "Notifications" (chữ hoa)
+            .child(notificationId)
+
+        val notificationToSave = notification.copy(userId = userId, notificationId = notificationId)
+
+        notificationRef.setValue(notificationToSave)
+            .addOnSuccessListener {
+                Log.d("AppViewModel", "Saved notification with ID $notificationId for user $userId at users/$userId/Notifications/$notificationId")
+            }
+            .addOnFailureListener { error ->
+                Log.e("AppViewModel", "Error saving notification for user $userId: ${error.message}")
+            }
+    }
+
+    // CRUD Operations for ListCategories
+    fun addListCategory(name: String, icon: String?) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            Log.e("AppViewModel", "Cannot add category: No user is currently logged in")
+            return
+        }
+        val categoryId = UUID.randomUUID().toString()
+        val currentDate = LocalDate.now().format(dateFormatter)
+        val newCategory = ListCategories(
+            id = categoryId,
+            name = name,
+            date = currentDate,
+            icon = icon,
+            categories = emptyMap()
+        )
+        database.getReference("users").child(uid).child("ListCategories").child(categoryId)
+            .setValue(newCategory)
+            .addOnSuccessListener {
+                Log.d("AppViewModel", "Added category '$name' with ID $categoryId for user $uid")
+            }
+            .addOnFailureListener { error ->
+                Log.e("AppViewModel", "Error adding category '$name' for user $uid: ${error.message}")
+            }
+    }
+
+
+    // CRUD Operations for Expenses
+    fun addExpense(categoryId: String, expense: Expense) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            Log.e("AppViewModel", "Cannot add expense: No user is currently logged in")
+            return
+        }
+        val expenseRef = database.getReference("users").child(uid).child("transactionsBE").child("expenses").child(expense.id)
+        val transactionBE = TransactionBE(
+            id = expense.id,
+            title = expense.title,
+            amount = expense.amount,
+            date = expense.date,
+            categoryId = categoryId,
+            type = "expense",
+            message = expense.message
+        )
+        expenseRef.setValue(transactionBE)
+            .addOnSuccessListener {
+                Log.d("AppViewModel", "Added expense '${expense.title}' with ID ${expense.id} for user $uid")
+                // Tạo và lưu notification sau khi thêm expense thành công
+                val notification = Notification(
+                    notificationId = UUID.randomUUID().toString(),
+                    title = "Chi phí mới",
+                    body = "Bạn vừa thêm chi phí '${expense.title}' với số tiền ${expense.amount}.",
+                    timestamp = System.currentTimeMillis(),
+                    type = "expense_added",
+                    data = mapOf("expenseId" to expense.id)
+                )
+                saveNotification(notification) // Gọi hàm saveNotification
+            }
+            .addOnFailureListener { error ->
+                Log.e("AppViewModel", "Error adding expense '${expense.title}' for user $uid: ${error.message}")
+            }
+    }
+
+    fun deleteExpense(expenseId: String) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            Log.e("AppViewModel", "Cannot delete expense: No user is currently logged in")
+            return
+        }
+        database.getReference("users").child(uid).child("transactionsBE").child("expenses").child(expenseId)
+            .removeValue()
+            .addOnSuccessListener {
+                Log.d("AppViewModel", "Deleted expense $expenseId for user $uid")
+            }
+            .addOnFailureListener { error ->
+                Log.e("AppViewModel", "Error deleting expense $expenseId for user $uid: ${error.message}")
+            }
+    }
+
+    fun deleteListCategory(categoryId: String) {
+        val uid = auth.currentUser?.uid
+        if (uid == null) {
+            Log.e("AppViewModel", "Cannot delete category: No user is currently logged in")
+            return
+        }
+        database.getReference("users").child(uid).child("ListCategories").child(categoryId)
+            .removeValue()
+            .addOnSuccessListener {
+                Log.d("AppViewModel", "Deleted category $categoryId for user $uid")
+            }
+            .addOnFailureListener { error ->
+                Log.e("AppViewModel", "Error deleting category $categoryId for user $uid: ${error.message}")
+            }
     }
 
     fun logout() {

@@ -93,13 +93,13 @@ fun BankScreen(navController: NavController, bankViewModel: BankViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    OutlinedTextField(
-                        value = userName,
-                        onValueChange = { userName = it },
-                        label = { Text("User Name") },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = false
-                    )
+//                    OutlinedTextField(
+//                        value = userName,
+//                        onValueChange = { userName = it },
+//                        label = { Text("User Name") },
+//                        modifier = Modifier.fillMaxWidth(),
+//                        enabled = false
+//                    )
                     OutlinedTextField(
                         value = bankCode,
                         onValueChange = { bankCode = it },

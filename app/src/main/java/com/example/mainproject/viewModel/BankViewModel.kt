@@ -5,22 +5,31 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mainproject.data.model.Account
 import com.example.mainproject.data.model.AccountBank
+import com.example.mainproject.data.model.Income
+import com.example.mainproject.data.model.Notification
 import com.example.mainproject.data.repository.UserRepository
+import com.example.mainproject.ui.screens.auth
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.util.UUID // Đảm bảo import UUID
+import kotlin.String
 
 class BankViewModel(
     private val userRepository: UserRepository,
-    private val userIdProvider: () -> String?
+    private val userIdProvider: () -> String?,
+    private val transactionViewModel: TransactionViewModel // Vẫn giữ lại
 ) : ViewModel() {
     private val _accountBankInfo = MutableStateFlow<AccountBank?>(null)
     val accountBankInfo: StateFlow<AccountBank?> = _accountBankInfo
 
     private val _account = MutableStateFlow<Account?>(null)
     val account: StateFlow<Account?> = _account
+
+    private val database = FirebaseDatabase.getInstance()
 
     init {
         loadAccountBankInfo()
@@ -49,6 +58,30 @@ class BankViewModel(
         }
     }
 
+    fun saveNotification(notification: Notification) {
+        val userId = auth.currentUser?.uid
+        if (userId == null) {
+            Log.e("AppViewModel", "Cannot save notification: No user is currently logged in")
+            return
+        }
+
+        val notificationId = notification.notificationId ?: UUID.randomUUID().toString()
+        val notificationRef = database.getReference("users") // Thay đổi tham chiếu gốc thành "users"
+            .child(userId)
+            .child("Notifications") // Đổi tên nhánh thành "Notifications" (chữ hoa)
+            .child(notificationId)
+
+        val notificationToSave = notification.copy(userId = userId, notificationId = notificationId)
+
+        notificationRef.setValue(notificationToSave)
+            .addOnSuccessListener {
+                Log.d("AppViewModel", "Saved notification with ID $notificationId for user $userId at users/$userId/Notifications/$notificationId")
+            }
+            .addOnFailureListener { error ->
+                Log.e("AppViewModel", "Error saving notification for user $userId: ${error.message}")
+            }
+    }
+
     fun transferFromBankToAccount(amount: Double, callback: (Boolean, String?) -> Unit) {
         viewModelScope.launch {
             Log.d("TransferLog", "Attempting to transfer amount: $amount")
@@ -70,7 +103,7 @@ class BankViewModel(
 
                 // Cộng tiền vào tài khoản khác (nếu cần)
                 val newAccountBalance = currentAccount.balance + amount
-                val updatedAccount = currentAccount.copy(balance = newAccountBalance, id = userId)
+                val updatedAccount = currentAccount.copy(balance = newAccountBalance, userId = userId)
                 Log.d("TransferLog", "Updated Account: $updatedAccount")
 
                 // Cập nhật cả hai trong Firebase
@@ -82,6 +115,29 @@ class BankViewModel(
                             if (accountSuccess) {
                                 _accountBankInfo.value = updatedBankInfo // Cập nhật state BankInfo
                                 _account.value = updatedAccount // Cập nhật state Account
+
+                                // Tạo đối tượng Income
+                                val incomeNew = Income(
+                                    id = UUID.randomUUID().toString(),
+                                    categoryId = "transfer_in", // Sử dụng category ID phù hợp
+                                    title = "Chuyển tiền từ ngân hàng",
+                                    amount = amount,
+                                    date = LocalDate.now().toString(),
+                                    message = "Chuyển ${amount} từ tài khoản ngân hàng vào ví"
+                                )
+
+                                transactionViewModel.sendNewIncomeNotification(userId, incomeNew)
+                                transactionViewModel.saveNewTransactionForIncome(userId, incomeNew)
+
+                                // Tạo và lưu notification sử dụng hàm saveNotification từ AppViewModel
+                                val transferNotification = com.example.mainproject.data.model.Notification( // Đảm bảo import đúng model Notification
+                                    title = "Chuyển khoản thành công",
+                                    body = "Bạn đã chuyển ${amount} từ tài khoản ngân hàng vào ví.",
+                                    timestamp = System.currentTimeMillis(),
+                                    type = "transfer_successful",
+                                    data = mapOf("amount" to amount.toString())
+                                )
+                                saveNotification(transferNotification) // Gọi hàm saveNotification
                                 callback(true, "Transfer successful!")
                                 Log.d("TransferLog", "Transfer successful!")
                             } else {

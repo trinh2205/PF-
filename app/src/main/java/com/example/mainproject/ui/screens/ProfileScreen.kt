@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.CommentBank
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -154,10 +156,20 @@ fun ProfileScreen(
 
                 // Settings Option
                 ProfileOption(
-                    icon = Icons.Default.Settings,
+                    icon = Icons.Default.AccountBalance,
                     title = "Bank",
                     onClick = {
                         navController.navigate(Routes.SAVE_BANK) {
+                            launchSingleTop = true
+                        }
+                    }
+                )
+
+                ProfileOption(
+                    icon = Icons.Default.Settings,
+                    title = "Bank",
+                    onClick = {
+                        navController.navigate(Routes.SETTINGS) {
                             launchSingleTop = true
                         }
                     }

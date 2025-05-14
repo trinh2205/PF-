@@ -1,9 +1,13 @@
 package com.example.mainproject.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,12 +20,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.pullrefresh.PullRefreshIndicator
+import androidx.compose.material.pullrefresh.pullRefresh
+import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -47,26 +56,39 @@ import com.example.mainproject.R
 import com.example.mainproject.data.model.Notification
 import com.example.mainproject.data.repository.NotificationRepository
 import com.example.mainproject.viewModel.AppViewModel
-import com.example.mainproject.viewModel.NotificationViewModel
-import com.example.mainproject.viewModel.TimeFilter
+//import com.example.mainproject.viewModel.NotificationViewModel
+import com.example.mainproject.viewModel.NotificationViewModel.NotificationViewModel
+import com.example.mainproject.viewModel.NotificationViewModel.TimeFilter
+//import com.example.mainproject.viewModel.TimeFilter
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class, ExperimentalMaterialApi::class)
 @Composable
 fun NotificationScreen(navController: NavController, appViewModel: AppViewModel) {
     val userInfo by appViewModel.currentUser.collectAsState()
     val notificationRepository = remember { NotificationRepository.create() }
     val notificationViewModel: NotificationViewModel = viewModel(
-        factory = NotificationViewModel.provideFactory(notificationRepository, userInfo?.userId)
+        factory = NotificationViewModel.provideFactory(
+            notificationRepository = notificationRepository, // Truyền instance đã tạo
+            userId = userInfo?.userId
+        )
     )
     val notifications by notificationViewModel.notifications.collectAsState()
     val isLoadingNotifications by notificationViewModel.isLoading.collectAsState()
+    val isRefreshing by notificationViewModel.isRefreshing.collectAsState()
     val selectedTimeFilter by notificationViewModel.selectedTimeFilter.collectAsState()
+    val pullRefreshState = rememberPullRefreshState(refreshing = isRefreshing, onRefresh = {
+        notificationViewModel.refreshNotifications()
+    })
     val mainColor = colorResource(id = R.color.mainColor)
+
+    Log.d("NotificationScreen", "Current User ID: ${userInfo?.userId}")
+    Log.d("NotificationScreen", "Notifications state in screen: $notifications")
+    Log.d("NotificationScreen", "Is Loading: $isLoadingNotifications, Is Refreshing: $isRefreshing, Selected Filter: $selectedTimeFilter")
 
     Scaffold(
         modifier = Modifier.background(mainColor),
@@ -104,13 +126,14 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                 }
             }
         },
-        bottomBar = { // Thêm bottom bar để chứa các filter thời gian
+        bottomBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFFF4FFF9))
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(8.dp)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 FilterChip(
                     selected = selectedTimeFilter == null,
@@ -128,7 +151,10 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                     }
                     FilterChip(
                         selected = selectedTimeFilter == filter,
-                        onClick = { notificationViewModel.setTimeFilter(if (selectedTimeFilter == filter) null else filter) },
+                        onClick = {
+                            Log.d("NotificationScreen", "Filter chip clicked: $filter")
+                            notificationViewModel.setTimeFilter(if (selectedTimeFilter == filter) null else filter)
+                        },
                         label = { Text(label) }
                     )
                 }
@@ -140,6 +166,7 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                 .padding(paddingValues)
                 .fillMaxSize()
                 .background(mainColor)
+                .pullRefresh(pullRefreshState) // Thêm pull-to-refresh
         ) {
             Box(
                 modifier = Modifier
@@ -149,14 +176,14 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                     .background(Color(0xFFF4FFF9))
                     .padding(horizontal = 16.dp, vertical = 24.dp)
             ) {
-                if (isLoadingNotifications) {
+                if (isLoadingNotifications && !isRefreshing) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(color = mainColor)
                     }
-                } else if (notifications.isEmpty()) {
+                } else if (notifications.isEmpty() && !isRefreshing) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -173,25 +200,27 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                         contentPadding = PaddingValues(bottom = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(notifications.sortedByDescending { it.timestamp }) { notification -> // Sắp xếp theo thời gian mới nhất trước
+                        items(notifications.sortedByDescending { it.timestamp }) { notification ->
+                            Log.d("NotificationScreen", "Rendering notification: $notification")
                             NotificationItemUI(notification = notification)
                         }
                     }
                 }
             }
+            PullRefreshIndicator(refreshing = isRefreshing, state = pullRefreshState) // Indicator cho pull-to-refresh
         }
     }
 }
 
 @Composable
 fun NotificationItemUI(notification: Notification) {
+    Log.d("NotificationItemUI", "Composing notification item: $notification")
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Hình vuông bo tròn chứa icon thông báo chung
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -200,15 +229,13 @@ fun NotificationItemUI(notification: Notification) {
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Filled.Notifications, // Sử dụng icon thông báo chung
+                imageVector = Icons.Filled.Notifications,
                 contentDescription = "Icon thông báo",
                 tint = Color.White,
                 modifier = Modifier.size(24.dp)
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
-
-        // Phần giữa: Title và Body
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
@@ -228,11 +255,8 @@ fun NotificationItemUI(notification: Notification) {
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            // Bạn có thể hiển thị thêm thông tin từ notification.data nếu cần
         }
         Spacer(modifier = Modifier.width(16.dp))
-
-        // Phần bên phải: Thông tin thời gian
         Column(
             horizontalAlignment = Alignment.End
         ) {
@@ -240,7 +264,7 @@ fun NotificationItemUI(notification: Notification) {
                 text = Instant.ofEpochMilli(notification.timestamp)
                     .atZone(ZoneId.systemDefault())
                     .toLocalDateTime()
-                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
+                    .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault())),
                 fontSize = 12.sp,
                 color = Color.DarkGray
             )

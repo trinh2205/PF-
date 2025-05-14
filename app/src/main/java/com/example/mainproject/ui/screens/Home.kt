@@ -153,7 +153,7 @@ fun Home(
                     expense = totalExpenseState
                 )
                 Spacer(modifier = Modifier.height(5.dp))
-                VerificationStatus(isVerified = currentUserInfo?.isVerified ?: false)
+//                VerificationStatus(isVerified = currentUserInfo?.isVerified ?: false)
                 Spacer(modifier = Modifier.height(16.dp))
                 TransactionSection(
                     dailyTransactions = dailyTransactions,
@@ -205,28 +205,28 @@ fun BudgetProgressBar(budget: Double, expense: Double) {
     }
 }
 
-@Composable
-fun VerificationStatus(isVerified: Boolean) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 40.dp),
-        horizontalArrangement = Arrangement.Start,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Checkbox(
-            checked = isVerified,
-            onCheckedChange = { /* Handle verification toggle if needed */ },
-            enabled = false
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = if (isVerified) "Email đã xác minh" else "Email chưa xác minh",
-            color = Color.Black,
-            fontSize = 14.sp
-        )
-    }
-}
+//@Composable
+//fun VerificationStatus(isVerified: Boolean) {
+//    Row(
+//        modifier = Modifier
+//            .fillMaxWidth()
+//            .padding(horizontal = 40.dp),
+//        horizontalArrangement = Arrangement.Start,
+//        verticalAlignment = Alignment.CenterVertically
+//    ) {
+//        Checkbox(
+//            checked = isVerified,
+//            onCheckedChange = { /* Handle verification toggle if needed */ },
+//            enabled = false
+//        )
+//        Spacer(modifier = Modifier.width(8.dp))
+//        Text(
+//            text = if (isVerified) "Email đã xác minh" else "Email chưa xác minh",
+//            color = Color.Black,
+//            fontSize = 14.sp
+//        )
+//    }
+//}
 
 @Composable
 fun TransactionSection(
@@ -245,7 +245,7 @@ fun TransactionSection(
 
     Box(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .clip(RoundedCornerShape(topStart = 40.dp, topEnd = 40.dp))
             .background(Color(0xFFF4FFF9))
             .padding(horizontal = 16.dp, vertical = 24.dp)
@@ -258,19 +258,18 @@ fun TransactionSection(
                 onSelected = onFilterChange
             )
             Spacer(modifier = Modifier.height(16.dp))
-            TransactionList(transactionsList = transactionsToShow)
+            TransactionList(
+                transactionsList = transactionsToShow,
+                modifier = Modifier.height(300.dp) // Đặt chiều cao cố định cho TransactionList
+            )
         }
     }
 }
 
 @Composable
-fun TransactionList(transactionsList: List<TransactionBE>) {
-    val maxHeight = 300.dp
-
+fun TransactionList(transactionsList: List<TransactionBE>, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = maxHeight)
+        modifier = modifier
     ) {
         if (transactionsList.isEmpty()) {
             Text(
@@ -280,6 +279,7 @@ fun TransactionList(transactionsList: List<TransactionBE>) {
         } else {
             LazyColumn {
                 items(transactionsList) { transaction ->
+                    Log.d("TransactionList", "Rendering transaction: $transaction")
                     TransactionItem(transaction = transaction)
                     Divider()
                 }

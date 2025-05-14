@@ -1,7 +1,7 @@
 package com.example.mainproject.data.model
 
 data class Notification(
-    val notificationId: String = "", // ID duy nhất của thông báo (có thể do Firebase tạo hoặc bạn tự tạo)
+    var notificationId: String? = null, // ID duy nhất của thông báo (có thể do Firebase tạo hoặc bạn tự tạo)
     val userId: String = "",         // UID của người dùng nhận thông báo
     val title: String = "",          // Tiêu đề ngắn gọn của thông báo
     val body: String = "",           // Nội dung chi tiết của thông báo
