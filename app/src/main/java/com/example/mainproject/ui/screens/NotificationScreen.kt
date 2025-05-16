@@ -116,7 +116,7 @@ fun NotificationScreen(navController: NavController, appViewModel: AppViewModel)
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Thông Báo",
+                            text = "Notification",
                             fontSize = 20.sp,
                             color = Color.White,
                             fontWeight = FontWeight.Bold

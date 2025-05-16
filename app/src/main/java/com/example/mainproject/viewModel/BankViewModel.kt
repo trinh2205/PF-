@@ -135,7 +135,8 @@ class BankViewModel(
                                     body = "Bạn đã chuyển ${amount} từ tài khoản ngân hàng vào ví.",
                                     timestamp = System.currentTimeMillis(),
                                     type = "transfer_successful",
-                                    data = mapOf("amount" to amount.toString())
+                                    data = mapOf("amount" to amount.toString()),
+                                    notificationId = UUID.randomUUID().toString()
                                 )
                                 saveNotification(transferNotification) // Gọi hàm saveNotification
                                 callback(true, "Transfer successful!")

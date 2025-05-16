@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.R
 import com.example.mainproject.data.model.Expense
 import com.example.mainproject.ui.components.BottomNavigationBar
@@ -177,7 +178,10 @@ fun CategoryDetailScreen(
                     navController.popBackStack()
                 },
                 backgroundColor = Color(0xFF3498DB),
-                contentColor = Color.White
+                contentColor = Color.White,
+                onNotificationClick = {
+                    navController.navigate(Routes.NOTIFICATION)
+                }
             )
         }
     ) { paddingValues ->

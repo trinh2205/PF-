@@ -26,6 +26,7 @@ import java.util.Locale
 import android.widget.Toast
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import com.example.mainproject.NAVIGATION.Routes
 
 @Composable
 fun BankScreen(navController: NavController, bankViewModel: BankViewModel) {
@@ -71,7 +72,10 @@ fun BankScreen(navController: NavController, bankViewModel: BankViewModel) {
                 title = "Bank Information",
                 onBackClick = { navController.popBackStack() },
                 backgroundColor = Color(0xFF3498DB),
-                contentColor = Color.White
+                contentColor = Color.White,
+                onNotificationClick = {
+                    navController.navigate(Routes.NOTIFICATION)
+                }
             )
         }
     ) { paddingValues ->

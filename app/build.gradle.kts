@@ -50,6 +50,15 @@ dependencies {
     // Các dependencies khác của bạn
     // Sử dụng phiên bản phù hợp
 
+     // Phiên bản có thể khác
+
+    // Retrofit
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    // Gson
+    implementation("com.google.code.gson:gson:2.9.0") // Kiểm tra phiên bản mới nhất
+
     // Các dependencies Firebase khác của bạn (analytics, auth, firestore, v.v.)
     implementation(platform("com.google.firebase:firebase-bom:33.12.0")) // Bạn đang dùng phiên bản này
     implementation("com.google.firebase:firebase-analytics")
@@ -79,7 +88,8 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-livedata")
     implementation("androidx.compose.runtime:runtime-rxjava2")
     implementation("androidx.activity:activity-compose")
-    implementation("androidx.navigation:navigation-compose")
+//    implementation("androidx.navigation:navigation-compose")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.0")
 
     // Lifecycle
@@ -114,6 +124,7 @@ dependencies {
 //    }
     implementation("com.github.skydoves:landscapist-coil:2.4.7")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation(libs.navigation.runtime.android)
 
     // Testing
     testImplementation(libs.junit)

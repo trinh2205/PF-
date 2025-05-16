@@ -118,7 +118,7 @@ fun EditProfile(navController: NavController, viewModel: EditProfileViewModel = 
                     fontSize = 20.sp,
                     color = Color.White
                 )
-                Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
+//                Icon(Icons.Default.Notifications, contentDescription = null, tint = Color.White)
             }
         }
 

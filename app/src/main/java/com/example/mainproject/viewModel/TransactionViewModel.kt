@@ -601,7 +601,8 @@ class TransactionViewModel @Inject constructor(
             title = "New Expense",
             body = body,
             type = NotificationType.TRANSACTION.name,
-            data = mapOf("expenseId" to expense.id)
+            data = mapOf("expenseId" to expense.id),
+            notificationId = UUID.randomUUID().toString()
         )
         viewModelScope.launch {
             notificationRepository.saveNotification(notification)

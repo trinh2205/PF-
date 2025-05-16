@@ -91,6 +91,22 @@ fun Home(
                 }
 
             }
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    navController.navigate(route = Routes.CHATBOT)
+                },
+                backgroundColor = Color(0xFF3498DB),
+                contentColor = Color.White,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 8.dp, // Elevation khi button ở trạng thái bình thường
+                    pressedElevation = 12.dp, // Elevation khi button được nhấn
+                )
+            ) {
+                Icon(Icons.Filled.Chat, "Chatbot")
+            }
         }
 
     ) { paddingValues ->

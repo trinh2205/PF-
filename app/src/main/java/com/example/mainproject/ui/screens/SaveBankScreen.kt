@@ -17,7 +17,14 @@ import com.example.mainproject.viewModel.BankViewModel
 import com.example.mainproject.viewModel.BankViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun SaveBankScreen(navController: NavController, bankViewModel: BankViewModel) {
@@ -36,6 +43,8 @@ fun SaveBankScreenContent(navController: NavController, bankViewModel: BankViewM
 
     val accountBankInfoState by bankViewModel.accountBankInfo.collectAsState(initial = null)
 
+    val buttonBackgroundColor = Color(0xFF3498DB) // Màu xanh bạn muốn
+
     LaunchedEffect(accountBankInfoState) {
         accountBankInfoState?.let {
             userName = it.userName
@@ -48,14 +57,38 @@ fun SaveBankScreenContent(navController: NavController, bankViewModel: BankViewM
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Thông Tin Ngân Hàng") },
-                navigationIcon = {
+            Box(
+                modifier = Modifier.fillMaxWidth().background(Color(0xFF3498DB))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF3498DB))
+                        .padding(horizontal = 12.dp, vertical = 25.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Quay lại")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Quay lại",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
                     }
+                    Box(
+                        modifier = Modifier.weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Account Bank",
+                            fontSize = 20.sp,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(28.dp))
                 }
-            )
+            }
         }
     ) { paddingValues ->
         Column(
@@ -124,7 +157,12 @@ fun SaveBankScreenContent(navController: NavController, bankViewModel: BankViewM
                             }
                         }
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        backgroundColor = buttonBackgroundColor, // Đặt màu nền ở đây
+                        contentColor = Color.White // Màu chữ (tùy chọn)
+                        // Bạn có thể tùy chỉnh các màu khác như disabledContainerColor, disabledContentColor, v.v.
+                    )
                 ) {
                     Text("Lưu")
                 }
@@ -139,7 +177,7 @@ fun SaveBankScreenContent(navController: NavController, bankViewModel: BankViewM
                         bankName = ""
                         balance = ""
                     },
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).background(Color(0xFF3498DB))
                 ) {
                     Text("Reset")
                 }

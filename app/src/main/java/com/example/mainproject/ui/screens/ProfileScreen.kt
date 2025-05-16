@@ -108,11 +108,11 @@ fun ProfileScreen(
                     }
                 )
                 Text("Profile", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
-                Icon(
-                    Icons.Default.Notifications,
-                    contentDescription = "Notification",
-                    tint = Color.White
-                )
+//                Icon(
+//                    Icons.Default.Notifications,
+//                    contentDescription = "Notification",
+//                    tint = Color.White
+//                )
             }
         }
 
@@ -157,7 +157,7 @@ fun ProfileScreen(
                 // Settings Option
                 ProfileOption(
                     icon = Icons.Default.AccountBalance,
-                    title = "Bank",
+                    title = "Save Bank",
                     onClick = {
                         navController.navigate(Routes.SAVE_BANK) {
                             launchSingleTop = true
@@ -167,7 +167,7 @@ fun ProfileScreen(
 
                 ProfileOption(
                     icon = Icons.Default.Settings,
-                    title = "Bank",
+                    title = "Settings",
                     onClick = {
                         navController.navigate(Routes.SETTINGS) {
                             launchSingleTop = true

@@ -20,5 +20,6 @@ object Routes {
     const val EDIT_PROFILE = "edit_profile"
     const val BANK = "bankScreen" // Thêm route cho BankScreen
     const val SAVE_BANK = "saveBankScreen" // Thêm route cho BankScreen
+    const val CHATBOT = "chatbot"
     // ... các route khác
 }

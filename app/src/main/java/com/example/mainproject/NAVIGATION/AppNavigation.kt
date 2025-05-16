@@ -19,6 +19,7 @@ import com.example.mainproject.ui.screens.AnalysisScreen
 import com.example.mainproject.ui.screens.BankScreen
 import com.example.mainproject.ui.screens.CategoriesScreen
 import com.example.mainproject.ui.screens.CategoryDetailScreen
+import com.example.mainproject.ui.screens.ChatBotScreen
 import com.example.mainproject.ui.screens.EditProfile
 import com.example.mainproject.ui.screens.Home
 import com.example.mainproject.ui.screens.ItemScreen
@@ -30,6 +31,7 @@ import com.example.mainproject.ui.screens.SaveBankScreen
 import com.example.mainproject.ui.screens.SignIn
 import com.example.mainproject.ui.screens.SignUp
 import com.example.mainproject.ui.screens.SplashScreen
+import com.example.mainproject.ui.screens.TransactionScreen
 //import com.example.mainproject.ui.screens.TransactionHistoryScreen
 import com.example.mainproject.viewModel.AppViewModel
 import com.example.mainproject.viewModel.AppViewModelFactory
@@ -62,7 +64,6 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
     )
     val userRepository = remember { UserRepository() } // Tạo UserRepository ở đây
 
-    // Tạo BankViewModel ở đây
     // Tạo BankViewModel ở đây và truyền TransactionViewModel
     val bankViewModelFactory = remember(userRepository, transactionViewModel) {
         BankViewModelFactory(
@@ -72,6 +73,10 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         )
     }
     val bankViewModel: BankViewModel = viewModel(factory = bankViewModelFactory)
+
+    val editProfileViewModel: EditProfileViewModel = viewModel(
+        factory = EditProfileViewModel.provideFactory(userRepository, appViewModel, auth)
+    )
 
     //Luu trang thai dang nhap de chi dang nhap 1 lan trong tren thiet bi
     var startDestination = "splashScreen"
@@ -91,6 +96,10 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         // Thêm composable cho SaveBankScreen
         composable(route = Routes.SAVE_BANK) {
             SaveBankScreen(navController = navController, bankViewModel = bankViewModel)
+        }
+
+        composable(route = Routes.CHATBOT){
+            ChatBotScreen(navController = navController)
         }
 
         composable(route = Routes.MAIN_SCREEN) {
@@ -124,6 +133,9 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         }
         composable(route = Routes.CATEGORIES) {
             CategoriesScreen(navController = navController)
+        }
+        composable(route = Routes.TRANSACTION) {
+            TransactionScreen(navController = navController, viewModel = transactionViewModel)
         }
         composable(route = Routes.PROFILE) {
             ProfileScreen(
@@ -161,7 +173,9 @@ fun AppNavigation(auth: FirebaseAuth, navController: NavHostController) {
         composable(route = Routes.ANALYTICS) {
             AnalysisScreen(navController = navController)
         }
-
+        composable(route = Routes.SETTINGS) {
+            EditProfile(navController = navController, viewModel = editProfileViewModel)
+        }
         composable(route = Routes.EDIT_PROFILES) {
             EditProfile(navController = navController)
         }

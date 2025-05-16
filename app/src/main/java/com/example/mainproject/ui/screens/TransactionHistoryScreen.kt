@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.mainproject.NAVIGATION.Routes
 import com.example.mainproject.data.model.Income
 import com.example.mainproject.ui.components.BottomNavigationBar
 import com.example.mainproject.ui.components.CustomHeader
@@ -104,15 +105,15 @@ fun TransactionScreen(
                 }
             )
         },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddIncomeDialog = true },
-                backgroundColor = Color(0xFF4CAF50),
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Income")
-            }
-        }
+//        floatingActionButton = {
+//            FloatingActionButton(
+//                onClick = { showAddIncomeDialog = true },
+//                backgroundColor = Color(0xFF4CAF50),
+//                contentColor = Color.White
+//            ) {
+//                Icon(Icons.Filled.Add, contentDescription = "Add Income")
+//            }
+//        }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -128,12 +129,11 @@ fun TransactionScreen(
                 CustomHeader(
                     title = "Transaction",
                     onBackClick = { navController.popBackStack() },
-                    hasNotifications = null,
+                    backgroundColor = Color(0xFF4C9CDA),
+                    contentColor = Color.White,
                     onNotificationClick = {
-                        Log.d("TransactionScreen", "Notification icon clicked!")
-                    },
-                    backgroundColor = Color(0xFF3498DB),
-                    contentColor = Color.White
+                        navController.navigate(Routes.NOTIFICATION)
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
